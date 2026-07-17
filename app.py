@@ -294,15 +294,14 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         font_mat = ImageFont.load_default(size=int(h * 0.030))
 
     def fill_box_and_write(left_pct, top_pct, right_pct, bot_pct, text):
-        """Échantillonne la couleur de la boîte, la remplit, puis écrit le texte en blanc."""
+        """Échantillonne la couleur de la boîte, la remplit entièrement, puis écrit le texte en blanc."""
         x1, y1 = int(w * left_pct),  int(h * top_pct)
         x2, y2 = int(w * right_pct), int(h * bot_pct)
         # Couleur centrale de la boîte (échantillonnée depuis le template)
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         box_color = img.getpixel((cx, cy))[:3]
-        # Remplissage intérieur (petite marge pour préserver le bord de la boîte)
-        mg = int(h * 0.008)
-        draw.rectangle([x1 + mg, y1 + mg, x2 - mg, y2 - mg], fill=box_color)
+        # Remplissage COMPLET de la boîte (sans marge)
+        draw.rectangle([x1, y1, x2, y2], fill=box_color)
         # Texte centré verticalement, indenté horizontalement
         text_x = x1 + int(w * 0.012)
         text_h  = int(h * 0.050)
