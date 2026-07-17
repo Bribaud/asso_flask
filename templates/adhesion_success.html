@@ -14,7 +14,7 @@
     </div>
 
     <h1 style="font-family:var(--font-head);color:#1a7a4a;margin-bottom:.5rem">
-      Bienvenue dans l'AKF !
+      Bienvenue dans l'AKF, {{ ctx.prenom }} !
     </h1>
     <p style="color:var(--text-muted);font-size:1rem;margin-bottom:2rem">
       Votre paiement a été confirmé. Vous êtes maintenant membre officiel de l'Association des Koungheulois de France.
@@ -54,7 +54,7 @@
                 margin-bottom:2rem;text-align:left">
       <i class="fa-solid fa-envelope-open-text" style="color:#1a7a4a;margin-top:3px;font-size:1.1rem;flex-shrink:0"></i>
       <p style="margin:0;font-size:.88rem;color:#166534">
-        <strong>Votre carte membre a été envoyée</strong> à <strong>{{ adh.email }}</strong>.
+        <strong>Votre carte membre a été envoyée</strong> à <strong>{{ ctx.email }}</strong>.
         Consultez vos spams si vous ne la recevez pas dans les prochaines minutes.
       </p>
     </div>
