@@ -513,9 +513,10 @@ def adhesion_success():
         try:
             adhesion_id_raw = checkout.metadata.get("adhesion_id", "ABSENT")
             adhesion_id = int(adhesion_id_raw)
-            adh = db.session.get(Adhesion, adhesion_id)
+            adh = Adhesion.query.filter_by(id=adhesion_id).first()
         except Exception as e:
-            msg = f"DB lookup échoué: {e}\nadhesion_id_raw={checkout.metadata!r}"
+            import traceback
+            msg = f"DB lookup échoué: {type(e).__name__}: {e}\n{traceback.format_exc()}\nadhesion_id_raw={checkout.metadata!r}"
             print(f"[adhesion/success] {msg}", flush=True)
             return f"<pre style='color:red'>{msg}</pre>", 200
 
@@ -541,7 +542,7 @@ def adhesion_success():
                         conn.execute(text("UPDATE adhesion SET statut='actif', matricule=:mat WHERE id=:id"),
                                      {"mat": f"AKF-{adh.id:04d}", "id": adh.id})
                         conn.commit()
-                    adh = db.session.get(Adhesion, adh.id)
+                    adh = Adhesion.query.filter_by(id=adh.id).first()
                 except Exception as e2:
                     print(f"[adhesion/success] fallback SQL: {e2}", flush=True)
 
@@ -619,7 +620,7 @@ def debug_stripe(session_id):
         result["stripe_key_prefix"] = stripe.api_key[:12] + "..."
 
         adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
-        adh = db.session.get(Adhesion, adhesion_id)
+        adh = Adhesion.query.filter_by(id=adhesion_id).first()
         result["adhesion_found"] = adh is not None
         if adh:
             result["adhesion_statut"]   = adh.statut
