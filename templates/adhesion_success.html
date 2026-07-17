@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Adhésion confirmée – {{ asso.nom }}{% endblock %}
+
+{% block content %}
+<section style="min-height:70vh;display:flex;align-items:center;justify-content:center;
+                padding:4rem 1rem;background:linear-gradient(135deg,#f0faf4 0%,#e8f5e9 100%)">
+  <div style="max-width:560px;width:100%;text-align:center">
+
+    <!-- Icône succès -->
+    <div style="width:80px;height:80px;background:#1a7a4a;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                margin:0 auto 1.5rem;box-shadow:0 8px 24px rgba(26,122,74,.3)">
+      <i class="fa-solid fa-check" style="font-size:2rem;color:#fff"></i>
+    </div>
+
+    <h1 style="font-family:var(--font-head);color:#1a7a4a;margin-bottom:.5rem">
+      Bienvenue dans l'AKF !
+    </h1>
+    <p style="color:var(--text-muted);font-size:1rem;margin-bottom:2rem">
+      Votre paiement a été confirmé. Vous êtes maintenant membre officiel de l'Association des Koungheulois de France.
+    </p>
+
+    <!-- Carte infos membre -->
+    <div style="background:#fff;border-radius:16px;padding:2rem;
+                box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:left;margin-bottom:2rem">
+      <h2 style="font-size:1rem;color:#374151;margin-bottom:1rem;
+                 display:flex;align-items:center;gap:.5rem">
+        <i class="fa-solid fa-id-card" style="color:#1a7a4a"></i>
+        Vos informations de membre
+      </h2>
+      <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <tr>
+          <td style="padding:6px 0;color:#6b7280;width:130px">Matricule</td>
+          <td><strong style="color:#1a7a4a;font-size:1rem">{{ adh.matricule }}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b7280">Nom complet</td>
+          <td><strong>{{ adh.prenom }} {{ adh.nom }}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b7280">Email</td>
+          <td>{{ adh.email }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;color:#6b7280">Type</td>
+          <td>{{ adh.type_adhesion | replace('_', ' ') | title }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Message carte envoyée -->
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
+                padding:1rem 1.25rem;display:flex;gap:.75rem;align-items:flex-start;
+                margin-bottom:2rem;text-align:left">
+      <i class="fa-solid fa-envelope-open-text" style="color:#1a7a4a;margin-top:3px;font-size:1.1rem;flex-shrink:0"></i>
+      <p style="margin:0;font-size:.88rem;color:#166534">
+        <strong>Votre carte membre a été envoyée</strong> à <strong>{{ adh.email }}</strong>.
+        Consultez vos spams si vous ne la recevez pas dans les prochaines minutes.
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="{{ url_for('index') }}"
+         style="background:#1a7a4a;color:#fff;padding:.75rem 1.5rem;border-radius:8px;
+                text-decoration:none;font-weight:600;font-size:.9rem">
+        <i class="fa-solid fa-house" style="margin-right:.4rem"></i>Retour à l'accueil
+      </a>
+      <a href="{{ url_for('evenements') }}"
+         style="background:#fff;color:#1a7a4a;padding:.75rem 1.5rem;border-radius:8px;
+                text-decoration:none;font-weight:600;font-size:.9rem;
+                border:2px solid #1a7a4a">
+        <i class="fa-solid fa-calendar" style="margin-right:.4rem"></i>Voir les événements
+      </a>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

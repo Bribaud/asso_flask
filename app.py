@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from functools import wraps
 from sqlalchemy.pool import NullPool
+from io import BytesIO
 import stripe, os, uuid
 
 app = Flask(__name__)
@@ -95,6 +96,13 @@ ASSO = {
 
 MAIL_NOTIFICATIONS = os.environ.get("MAIL_NOTIFICATIONS", "papesemoundao2016@gmail.com")
 
+# Prix d'adhésion en centimes (configurables via variables d'environnement Vercel)
+ADHESION_PRIX = {
+    "etudiant":          int(os.environ.get("ADHESION_PRIX_ETUDIANT",     500)),   # 5 €
+    "membre_actif":      int(os.environ.get("ADHESION_PRIX_ACTIF",       1000)),  # 10 €
+    "membre_bienfaiteur": int(os.environ.get("ADHESION_PRIX_BIENFAITEUR", 2000)), # 20 €
+}
+
 # ── MODÈLES ───────────────────────────────────────────────────────────────────
 
 class AdminUser(db.Model):
@@ -142,6 +150,8 @@ class Adhesion(db.Model):
     type_adhesion    = db.Column(db.String(100))
     motivation       = db.Column(db.Text)
     statut           = db.Column(db.String(20), default="en_attente")
+    matricule        = db.Column(db.String(20), unique=True, nullable=True)
+    stripe_session_id = db.Column(db.String(255), nullable=True)
     date_creation    = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Projet(db.Model):
@@ -260,6 +270,49 @@ def email_header(titre=None):
       </p>
     </div>"""
 
+# ── GÉNÉRATION CARTE MEMBRE ───────────────────────────────────────────────────
+
+def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
+    """Génère la carte membre en PNG et retourne les bytes."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    template_path = os.path.join("static", "img", "carte_template.png")
+    if os.path.exists(template_path):
+        img = Image.open(template_path).convert("RGBA")
+    else:
+        # Fallback : fond blanc simple si le template n'est pas encore uploadé
+        img = Image.new("RGBA", (1140, 795), (255, 255, 255, 255))
+
+    draw = ImageDraw.Draw(img)
+    w, h = img.size
+
+    # Chargement de la police Montserrat (bundlée dans le repo)
+    font_path = os.path.join("static", "fonts", "Montserrat.ttf")
+    try:
+        font_nom    = ImageFont.truetype(font_path, size=int(h * 0.052))
+        font_mat    = ImageFont.truetype(font_path, size=int(h * 0.030))
+    except Exception:
+        font_nom    = ImageFont.load_default(size=int(h * 0.052))
+        font_mat    = ImageFont.load_default(size=int(h * 0.030))
+
+    # Positions relatives (adaptées au template 1140×795)
+    # Boîte NOM  : bande bleue ~y=53% du haut
+    # Boîte PRENOM : bande bleue ~y=65% du haut
+    box_x      = int(w * 0.080)
+    nom_y      = int(h * 0.515)
+    prenom_y   = int(h * 0.645)
+    mat_y      = int(h * 0.810)
+
+    draw.text((box_x, nom_y),    nom.upper(),    fill="white", font=font_nom)
+    draw.text((box_x, prenom_y), prenom.upper(), fill="white", font=font_nom)
+    draw.text((box_x, mat_y),    f"N° matricule : {matricule}", fill="#1a3a6b", font=font_mat)
+
+    buf = BytesIO()
+    img.convert("RGB").save(buf, format="PNG", optimize=True)
+    buf.seek(0)
+    return buf.getvalue()
+
+
 # ── ROUTES PUBLIQUES ──────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -358,44 +411,145 @@ def adhesion():
         pays             = request.form.get("pays", "France")
         type_adhesion    = request.form.get("type_adhesion", "membre_actif")
         motivation       = request.form.get("motivation", "").strip()
-        if prenom and nom and email:
-            db.session.add(Adhesion(
-                civilite=civilite, prenom=prenom, nom=nom, email=email,
-                telephone=telephone, date_naissance=date_naissance,
-                etudiant=etudiant, etablissement=etablissement,
-                profession=profession, profession_autre=profession_autre,
-                adresse=adresse, code_postal=code_postal,
-                ville=ville, pays=pays, type_adhesion=type_adhesion,
-                motivation=motivation
-            ))
-            db.session.commit()
-            # Email au bureau
-            msg = MailMessage(subject=f"[AKF] Nouvelle adhésion — {prenom} {nom}",
-                              recipients=[MAIL_NOTIFICATIONS])
-            msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-              {email_header()}
-              <div style="padding:30px;background:#fff">
-                <h2 style="color:#1a7a4a;font-size:1rem">Nouvelle demande d'adhésion</h2>
-                <table style="width:100%;border-collapse:collapse;font-size:.9rem">
-                  <tr><td style="padding:5px 0;color:#6b7280;width:140px">Civilité</td><td>{civilite}</td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Prénom / Nom</td><td><strong>{prenom} {nom}</strong></td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Email</td><td><a href="mailto:{email}" style="color:#1a7a4a">{email}</a></td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Téléphone</td><td>{telephone}</td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Ville</td><td>{ville}, {pays}</td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Étudiant</td><td>{etudiant}{' – ' + etablissement if etablissement else ''}</td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Profession</td><td>{profession}{' – ' + profession_autre if profession_autre else ''}</td></tr>
-                  <tr><td style="padding:5px 0;color:#6b7280">Type adhésion</td><td>{type_adhesion}</td></tr>
-                </table>
-                {f'<div style="background:#f8faf9;border-left:4px solid #1a7a4a;border-radius:4px;padding:16px;margin-top:16px"><p style="margin:0;color:#555">{motivation}</p></div>' if motivation else ''}
-                {email_footer()}
-              </div>
-            </div>"""
-            send_mail_safe(msg)
-            flash(f"Demande d'adhésion reçue. Merci {prenom} !", "success")
+
+        if not (prenom and nom and email):
+            flash("Veuillez compléter les champs obligatoires.", "danger")
             return redirect(url_for("adhesion"))
-        flash("Veuillez compléter les champs obligatoires.", "danger")
-        return redirect(url_for("adhesion"))
+
+        # Sauvegarde en_attente (avant paiement)
+        adh = Adhesion(
+            civilite=civilite, prenom=prenom, nom=nom, email=email,
+            telephone=telephone, date_naissance=date_naissance,
+            etudiant=etudiant, etablissement=etablissement,
+            profession=profession, profession_autre=profession_autre,
+            adresse=adresse, code_postal=code_postal,
+            ville=ville, pays=pays, type_adhesion=type_adhesion,
+            motivation=motivation, statut="en_attente"
+        )
+        db.session.add(adh)
+        db.session.commit()
+
+        # Détermination du montant Stripe
+        if etudiant == "oui":
+            montant = ADHESION_PRIX["etudiant"]
+            label   = "Adhésion étudiant – AKF"
+        elif type_adhesion == "membre_bienfaiteur":
+            montant = ADHESION_PRIX["membre_bienfaiteur"]
+            label   = "Adhésion membre bienfaiteur – AKF"
+        else:
+            montant = ADHESION_PRIX["membre_actif"]
+            label   = "Adhésion membre actif – AKF"
+
+        try:
+            checkout = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                line_items=[{
+                    "price_data": {
+                        "currency": "eur",
+                        "product_data": {"name": label, "description": f"{prenom} {nom}"},
+                        "unit_amount": montant,
+                    },
+                    "quantity": 1,
+                }],
+                mode="payment",
+                customer_email=email,
+                success_url=url_for("adhesion_success", _external=True) + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=url_for("adhesion_cancel", _external=True),
+                metadata={"adhesion_id": str(adh.id)},
+            )
+            adh.stripe_session_id = checkout.id
+            db.session.commit()
+            return redirect(checkout.url, code=303)
+        except Exception as e:
+            print(f"[Stripe] erreur : {e}")
+            db.session.delete(adh)
+            db.session.commit()
+            flash("Erreur lors de la création du paiement. Veuillez réessayer.", "danger")
+            return redirect(url_for("adhesion"))
+
     return render_template("adhesion.html", asso=ASSO, now=datetime.now())
+
+
+@app.route("/adhesion/success")
+def adhesion_success():
+    session_id = request.args.get("session_id", "")
+    if not session_id:
+        return redirect(url_for("adhesion"))
+    try:
+        checkout = stripe.checkout.Session.retrieve(session_id)
+        if checkout.payment_status != "paid":
+            flash("Le paiement n'a pas été confirmé.", "warning")
+            return redirect(url_for("adhesion"))
+
+        adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
+        adh = Adhesion.query.get(adhesion_id)
+        if not adh:
+            flash("Adhésion introuvable.", "danger")
+            return redirect(url_for("adhesion"))
+
+        # Activation si pas encore traitée
+        if adh.statut == "en_attente":
+            adh.statut    = "actif"
+            adh.matricule = f"AKF-{adh.id:04d}"
+            db.session.commit()
+
+            # Génération et envoi de la carte membre
+            try:
+                carte = generate_carte_membre(adh.prenom, adh.nom, adh.matricule)
+                msg   = MailMessage(
+                    subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
+                    recipients=[adh.email],
+                )
+                msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                  {email_header()}
+                  <div style="padding:30px;background:#fff">
+                    <h2 style="color:#1a7a4a">Bienvenue dans l'AKF, {adh.prenom} !</h2>
+                    <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
+                    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
+                      <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
+                          <td><strong>{adh.matricule}</strong></td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
+                          <td>{adh.prenom} {adh.nom}</td></tr>
+                      <tr><td style="padding:5px 0;color:#6b7280">Type</td>
+                          <td>{adh.type_adhesion}</td></tr>
+                    </table>
+                    <p style="color:#6b7280;font-size:.85rem">
+                      Conservez précieusement votre carte — elle vous sera demandée lors des événements.
+                    </p>
+                    {email_footer()}
+                  </div>
+                </div>"""
+                msg.attach(f"carte_membre_{adh.matricule}.png", "image/png", carte)
+                # Notification au bureau
+                notif = MailMessage(
+                    subject=f"[AKF] Nouvelle adhésion validée — {adh.prenom} {adh.nom}",
+                    recipients=[MAIL_NOTIFICATIONS],
+                )
+                notif.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                  {email_header()}
+                  <div style="padding:30px;background:#fff">
+                    <p><strong>{adh.prenom} {adh.nom}</strong> vient de finaliser son adhésion
+                    (matricule <strong>{adh.matricule}</strong>).</p>
+                    {email_footer()}
+                  </div>
+                </div>"""
+                send_mail_safe(msg)
+                send_mail_safe(notif)
+            except Exception as e:
+                print(f"[Carte/mail] erreur : {e}")
+
+        return render_template("adhesion_success.html", asso=ASSO, adh=adh, now=datetime.now())
+
+    except Exception as e:
+        print(f"[adhesion_success] erreur : {e}")
+        flash("Erreur lors de la vérification du paiement.", "danger")
+        return redirect(url_for("adhesion"))
+
+
+@app.route("/adhesion/cancel")
+def adhesion_cancel():
+    flash("Paiement annulé. Votre inscription n'a pas été finalisée.", "warning")
+    return redirect(url_for("adhesion"))
 
 @app.route("/don", methods=["GET", "POST"])
 def don():
@@ -1153,6 +1307,17 @@ def seed_db():
 def init_db():
     with app.app_context():
         db.create_all()
+        # Migration : ajout des nouvelles colonnes si absentes (PostgreSQL)
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                for sql in [
+                    "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)",
+                    "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)",
+                ]:
+                    try: conn.execute(text(sql)); conn.commit()
+                    except Exception: pass
+        except Exception: pass
         # seed_db uniquement si l'admin n'existe pas encore (première installation)
         if not AdminUser.query.filter_by(username="admin").first():
             try: seed_db()
