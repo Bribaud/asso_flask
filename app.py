@@ -280,8 +280,8 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
     if os.path.exists(template_path):
         img = Image.open(template_path).convert("RGBA")
     else:
-        # Fallback : fond blanc simple si le template n'est pas encore uploadé
-        img = Image.new("RGBA", (1140, 795), (255, 255, 255, 255))
+        # Fallback visible si le template est absent
+        img = Image.new("RGBA", (1080, 756), (245, 247, 250, 255))
 
     draw = ImageDraw.Draw(img)
     w, h = img.size
@@ -289,23 +289,30 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
     # Chargement de la police Montserrat (bundlée dans le repo)
     font_path = os.path.join("static", "fonts", "Montserrat.ttf")
     try:
-        font_nom    = ImageFont.truetype(font_path, size=int(h * 0.052))
-        font_mat    = ImageFont.truetype(font_path, size=int(h * 0.030))
+        font_nom = ImageFont.truetype(font_path, size=int(h * 0.048))
+        font_mat = ImageFont.truetype(font_path, size=int(h * 0.028))
     except Exception:
-        font_nom    = ImageFont.load_default(size=int(h * 0.052))
-        font_mat    = ImageFont.load_default(size=int(h * 0.030))
+        font_nom = ImageFont.load_default(size=int(h * 0.048))
+        font_mat = ImageFont.load_default(size=int(h * 0.028))
 
-    # Positions relatives (adaptées au template 1140×795)
-    # Boîte NOM  : bande bleue ~y=53% du haut
-    # Boîte PRENOM : bande bleue ~y=65% du haut
-    box_x      = int(w * 0.080)
-    nom_y      = int(h * 0.515)
-    prenom_y   = int(h * 0.645)
-    mat_y      = int(h * 0.810)
+    # ── Coordonnées calées sur le template (valeurs en % de w/h) ────────────
+    # Boîte NOM  : bande bleue à ~51-60 % de la hauteur
+    # Boîte PRENOM : bande bleue à ~63-72 % de la hauteur
+    # Le texte est décalé de ~2 % vers le bas par rapport au bord supérieur de la boîte
+    # et indenté de ~7.5 % depuis la gauche (même alignement que le label blanc)
+    box_x    = int(w * 0.075)   # ~81 px (aligne avec label "NOM")
+    nom_y    = int(h * 0.535)   # ~404 px → dans la boîte NOM
+    prenom_y = int(h * 0.658)   # ~497 px → dans la boîte PRENOM
+    mat_y    = int(h * 0.848)   # ~641 px → ligne "N° matricule:"
 
-    draw.text((box_x, nom_y),    nom.upper(),    fill="white", font=font_nom)
-    draw.text((box_x, prenom_y), prenom.upper(), fill="white", font=font_nom)
-    draw.text((box_x, mat_y),    f"N° matricule : {matricule}", fill="#1a3a6b", font=font_mat)
+    # Texte blanc dans les boîtes bleues
+    draw.text((box_x, nom_y),    nom.upper(),    fill="white", font=font_nom,
+              stroke_width=1, stroke_fill="white")
+    draw.text((box_x, prenom_y), prenom.upper(), fill="white", font=font_nom,
+              stroke_width=1, stroke_fill="white")
+    # Matricule en bleu foncé
+    draw.text((box_x, mat_y), f"N° matricule : {matricule}",
+              fill="#1a3a6b", font=font_mat)
 
     buf = BytesIO()
     img.convert("RGB").save(buf, format="PNG", optimize=True)
