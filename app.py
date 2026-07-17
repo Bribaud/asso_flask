@@ -585,6 +585,28 @@ def adhesion_cancel():
     flash("Paiement annulé. Votre inscription n'a pas été finalisée.", "warning")
     return redirect(url_for("adhesion"))
 
+
+@app.route("/debug/stripe/<session_id>")
+def debug_stripe(session_id):
+    """Endpoint temporaire de diagnostic — à supprimer en production."""
+    result = {}
+    try:
+        checkout = stripe.checkout.Session.retrieve(session_id)
+        result["payment_status"] = checkout.payment_status
+        result["metadata"]       = dict(checkout.metadata)
+        result["amount_total"]   = checkout.amount_total
+        result["stripe_key_prefix"] = stripe.api_key[:12] + "..."
+
+        adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
+        adh = db.session.get(Adhesion, adhesion_id)
+        result["adhesion_found"] = adh is not None
+        if adh:
+            result["adhesion_statut"]   = adh.statut
+            result["adhesion_matricule"] = adh.matricule
+    except Exception as e:
+        result["error"] = str(e)
+    return jsonify(result)
+
 @app.route("/don", methods=["GET", "POST"])
 def don():
     if request.method == "POST":
