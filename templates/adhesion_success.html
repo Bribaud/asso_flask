@@ -31,19 +31,19 @@
       <table style="width:100%;border-collapse:collapse;font-size:.9rem">
         <tr>
           <td style="padding:6px 0;color:#6b7280;width:130px">Matricule</td>
-          <td><strong style="color:#1a7a4a;font-size:1rem">{{ adh.matricule }}</strong></td>
+          <td><strong style="color:#1a7a4a;font-size:1rem">{{ ctx.matricule }}</strong></td>
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280">Nom complet</td>
-          <td><strong>{{ adh.prenom }} {{ adh.nom }}</strong></td>
+          <td><strong>{{ ctx.prenom }} {{ ctx.nom }}</strong></td>
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280">Email</td>
-          <td>{{ adh.email }}</td>
+          <td>{{ ctx.email }}</td>
         </tr>
         <tr>
           <td style="padding:6px 0;color:#6b7280">Type</td>
-          <td>{{ adh.type_adhesion | replace('_', ' ') | title }}</td>
+          <td>{{ ctx.type_adhesion | replace('_', ' ') | title }}</td>
         </tr>
       </table>
     </div>
