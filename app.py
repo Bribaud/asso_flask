@@ -495,103 +495,92 @@ def adhesion():
 def adhesion_success():
     session_id = request.args.get("session_id", "")
     if not session_id:
-        return redirect(url_for("adhesion"))
+        return "<pre>ERREUR: session_id absent de l'URL</pre>", 400
+
+    # Étape 1 — récupération Stripe
     try:
         checkout = stripe.checkout.Session.retrieve(session_id)
     except Exception as e:
-        print(f"[Stripe] retrieve error: {e}", flush=True)
-        flash("Erreur lors de la vérification du paiement Stripe.", "danger")
-        return redirect(url_for("adhesion"))
+        msg = f"Stripe retrieve échoué:\n{e}\n\nClé utilisée: {stripe.api_key[:16]}..."
+        print(f"[adhesion/success] {msg}", flush=True)
+        return f"<pre style='color:red'>{msg}</pre>", 500
 
     if checkout.payment_status != "paid":
-        flash("Le paiement n'a pas été confirmé.", "warning")
-        return redirect(url_for("adhesion"))
+        return f"<pre>payment_status={checkout.payment_status!r} (attendu: 'paid')</pre>", 400
 
+    # Étape 2 — récupération adhésion
+    adhesion_id_raw = checkout.metadata.get("adhesion_id", "ABSENT")
     try:
-        adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
-        adh = db.session.get(Adhesion, adhesion_id)  # API SQLAlchemy 2.x
-        if not adh:
-            flash("Adhésion introuvable.", "danger")
-            return redirect(url_for("adhesion"))
-
-        # Activation uniquement si pas encore traitée
-        if adh.statut == "en_attente":
-            try:
-                adh.statut    = "actif"
-                adh.matricule = f"AKF-{adh.id:04d}"
-                db.session.commit()
-            except Exception as e:
-                print(f"[adhesion_success] commit error: {e}", flush=True)
-                db.session.rollback()
-                # Colonnes absentes → on tente via SQL direct
-                try:
-                    from sqlalchemy import text
-                    with db.engine.connect() as conn:
-                        conn.execute(text(
-                            "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)"
-                        ))
-                        conn.execute(text(
-                            "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)"
-                        ))
-                        conn.execute(text(
-                            "UPDATE adhesion SET statut='actif', matricule=:mat WHERE id=:id"
-                        ), {"mat": f"AKF-{adh.id:04d}", "id": adh.id})
-                        conn.commit()
-                    db.session.refresh(adh)
-                except Exception as e2:
-                    print(f"[adhesion_success] fallback SQL error: {e2}", flush=True)
-
-            # Envoi de la carte (indépendant du commit)
-            try:
-                mat = adh.matricule or f"AKF-{adh.id:04d}"
-                carte = generate_carte_membre(adh.prenom, adh.nom, mat)
-                msg   = MailMessage(
-                    subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
-                    recipients=[adh.email],
-                )
-                msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-                  {email_header()}
-                  <div style="padding:30px;background:#fff">
-                    <h2 style="color:#1a7a4a">Bienvenue dans l'AKF, {adh.prenom} !</h2>
-                    <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
-                    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
-                      <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
-                          <td><strong>{mat}</strong></td></tr>
-                      <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
-                          <td>{adh.prenom} {adh.nom}</td></tr>
-                      <tr><td style="padding:5px 0;color:#6b7280">Type</td>
-                          <td>{adh.type_adhesion}</td></tr>
-                    </table>
-                    <p style="color:#6b7280;font-size:.85rem">
-                      Conservez précieusement votre carte — elle vous sera demandée lors des événements.
-                    </p>
-                    {email_footer()}
-                  </div>
-                </div>"""
-                msg.attach(f"carte_membre_{mat}.png", "image/png", carte)
-                notif = MailMessage(
-                    subject=f"[AKF] Nouvelle adhésion validée — {adh.prenom} {adh.nom}",
-                    recipients=[MAIL_NOTIFICATIONS],
-                )
-                notif.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-                  {email_header()}
-                  <div style="padding:30px;background:#fff">
-                    <p><strong>{adh.prenom} {adh.nom}</strong> vient de finaliser son adhésion
-                    (matricule <strong>{mat}</strong>).</p>
-                    {email_footer()}
-                  </div>
-                </div>"""
-                send_mail_safe(msg)
-                send_mail_safe(notif)
-            except Exception as e:
-                print(f"[carte/mail] erreur : {e}", flush=True)
-
-        return render_template("adhesion_success.html", asso=ASSO, adh=adh, now=datetime.now())
-
+        adhesion_id = int(adhesion_id_raw)
+        adh = db.session.get(Adhesion, adhesion_id)
     except Exception as e:
-        print(f"[adhesion_success] erreur générale: {e}", flush=True)
-        flash("Erreur lors de la vérification du paiement.", "danger")
-        return redirect(url_for("adhesion"))
+        msg = f"DB lookup échoué: {e}\nadhesion_id_raw={adhesion_id_raw!r}"
+        print(f"[adhesion/success] {msg}", flush=True)
+        return f"<pre style='color:red'>{msg}</pre>", 500
+
+    if not adh:
+        return f"<pre>Adhésion id={adhesion_id} introuvable en base (adhesion_id_raw={adhesion_id_raw!r})</pre>", 404
+
+    # Étape 3 — activation
+    if adh.statut == "en_attente":
+        try:
+            adh.statut    = "actif"
+            adh.matricule = f"AKF-{adh.id:04d}"
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"[adhesion/success] commit: {e}", flush=True)
+            try:
+                from sqlalchemy import text
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)"))
+                    conn.execute(text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)"))
+                    conn.execute(text("UPDATE adhesion SET statut='actif', matricule=:mat WHERE id=:id"),
+                                 {"mat": f"AKF-{adh.id:04d}", "id": adh.id})
+                    conn.commit()
+                db.session.refresh(adh)
+            except Exception as e2:
+                print(f"[adhesion/success] fallback SQL: {e2}", flush=True)
+
+        # Envoi carte
+        try:
+            mat   = adh.matricule or f"AKF-{adh.id:04d}"
+            carte = generate_carte_membre(adh.prenom, adh.nom, mat)
+            msg_m = MailMessage(subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
+                                recipients=[adh.email])
+            msg_m.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              {email_header()}
+              <div style="padding:30px;background:#fff">
+                <h2 style="color:#1a7a4a">Bienvenue dans l'AKF, {adh.prenom} !</h2>
+                <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
+                <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
+                  <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
+                      <td><strong>{mat}</strong></td></tr>
+                  <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
+                      <td>{adh.prenom} {adh.nom}</td></tr>
+                  <tr><td style="padding:5px 0;color:#6b7280">Type</td>
+                      <td>{adh.type_adhesion}</td></tr>
+                </table>
+                <p style="color:#6b7280;font-size:.85rem">Conservez précieusement votre carte.</p>
+                {email_footer()}
+              </div>
+            </div>"""
+            msg_m.attach(f"carte_membre_{mat}.png", "image/png", carte)
+            notif = MailMessage(subject=f"[AKF] Nouvelle adhésion — {adh.prenom} {adh.nom}",
+                                recipients=[MAIL_NOTIFICATIONS])
+            notif.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+              {email_header()}
+              <div style="padding:30px;background:#fff">
+                <p><strong>{adh.prenom} {adh.nom}</strong> a finalisé son adhésion (matricule <strong>{mat}</strong>).</p>
+                {email_footer()}
+              </div>
+            </div>"""
+            send_mail_safe(msg_m)
+            send_mail_safe(notif)
+        except Exception as e:
+            print(f"[carte/mail] {e}", flush=True)
+
+    return render_template("adhesion_success.html", asso=ASSO, adh=adh, now=datetime.now())
 
 
 @app.route("/adhesion/cancel")
