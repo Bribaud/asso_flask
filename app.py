@@ -511,12 +511,15 @@ def adhesion_success():
 
         # Étape 2 — récupération adhésion
         try:
-            adhesion_id_raw = checkout.metadata.get("adhesion_id", "ABSENT")
+            # StripeObject v7 ne supporte pas .get() → utiliser ["key"]
+            adhesion_id_raw = checkout.metadata["adhesion_id"]
             adhesion_id = int(adhesion_id_raw)
             adh = Adhesion.query.filter_by(id=adhesion_id).first()
+        except (KeyError, AttributeError, TypeError) as e:
+            return f"<pre style='color:orange'>adhesion_id absent des métadonnées Stripe.\nmetadata={checkout.metadata!r}</pre>", 200
         except Exception as e:
             import traceback
-            msg = f"DB lookup échoué: {type(e).__name__}: {e}\n{traceback.format_exc()}\nadhesion_id_raw={checkout.metadata!r}"
+            msg = f"DB lookup échoué: {type(e).__name__}: {e}\n{traceback.format_exc()}"
             print(f"[adhesion/success] {msg}", flush=True)
             return f"<pre style='color:red'>{msg}</pre>", 200
 
@@ -615,11 +618,11 @@ def debug_stripe(session_id):
     try:
         checkout = stripe.checkout.Session.retrieve(session_id)
         result["payment_status"] = checkout.payment_status
-        result["metadata"]       = dict(checkout.metadata)
+        result["metadata"]       = dict(checkout.metadata._data) if hasattr(checkout.metadata, '_data') else {}
         result["amount_total"]   = checkout.amount_total
         result["stripe_key_prefix"] = stripe.api_key[:12] + "..."
 
-        adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
+        adhesion_id = int(checkout.metadata["adhesion_id"])
         adh = Adhesion.query.filter_by(id=adhesion_id).first()
         result["adhesion_found"] = adh is not None
         if adh:
