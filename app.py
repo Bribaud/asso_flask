@@ -423,6 +423,16 @@ def adhesion():
             flash("Veuillez compléter les champs obligatoires.", "danger")
             return redirect(url_for("adhesion"))
 
+        # Migration préventive : s'assure que les colonnes existent avant l'INSERT
+        try:
+            from sqlalchemy import text as _text
+            with db.engine.connect() as _conn:
+                _conn.execute(_text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)"))
+                _conn.execute(_text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)"))
+                _conn.commit()
+        except Exception as _me:
+            print(f"[adhesion] migration préventive : {_me}", flush=True)
+
         # Sauvegarde en_attente (avant paiement)
         adh = Adhesion(
             civilite=civilite, prenom=prenom, nom=nom, email=email,
@@ -435,6 +445,10 @@ def adhesion():
         )
         db.session.add(adh)
         db.session.commit()
+
+        if not adh.id:
+            flash("Erreur lors de la sauvegarde de votre adhésion. Veuillez réessayer.", "danger")
+            return redirect(url_for("adhesion"))
 
         # Détermination du montant Stripe
         if etudiant == "oui":
