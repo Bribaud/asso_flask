@@ -280,39 +280,50 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
     if os.path.exists(template_path):
         img = Image.open(template_path).convert("RGBA")
     else:
-        # Fallback visible si le template est absent
-        img = Image.new("RGBA", (1080, 756), (245, 247, 250, 255))
+        img = Image.new("RGBA", (1748, 1240), (245, 247, 250, 255))
 
     draw = ImageDraw.Draw(img)
-    w, h = img.size
+    w, h = img.size  # 1748 × 1240
 
-    # Chargement de la police Montserrat (bundlée dans le repo)
     font_path = os.path.join("static", "fonts", "Montserrat.ttf")
     try:
-        font_nom = ImageFont.truetype(font_path, size=int(h * 0.048))
-        font_mat = ImageFont.truetype(font_path, size=int(h * 0.028))
+        font_nom = ImageFont.truetype(font_path, size=int(h * 0.050))
+        font_mat = ImageFont.truetype(font_path, size=int(h * 0.030))
     except Exception:
-        font_nom = ImageFont.load_default(size=int(h * 0.048))
-        font_mat = ImageFont.load_default(size=int(h * 0.028))
+        font_nom = ImageFont.load_default(size=int(h * 0.050))
+        font_mat = ImageFont.load_default(size=int(h * 0.030))
 
-    # ── Coordonnées calées sur le template (valeurs en % de w/h) ────────────
-    # Boîte NOM  : bande bleue à ~51-60 % de la hauteur
-    # Boîte PRENOM : bande bleue à ~63-72 % de la hauteur
-    # Le texte est décalé de ~2 % vers le bas par rapport au bord supérieur de la boîte
-    # et indenté de ~7.5 % depuis la gauche (même alignement que le label blanc)
-    box_x    = int(w * 0.075)   # ~81 px (aligne avec label "NOM")
-    nom_y    = int(h * 0.535)   # ~404 px → dans la boîte NOM
-    prenom_y = int(h * 0.658)   # ~497 px → dans la boîte PRENOM
-    mat_y    = int(h * 0.848)   # ~641 px → ligne "N° matricule:"
+    def fill_box_and_write(left_pct, top_pct, right_pct, bot_pct, text):
+        """Échantillonne la couleur de la boîte, la remplit, puis écrit le texte en blanc."""
+        x1, y1 = int(w * left_pct),  int(h * top_pct)
+        x2, y2 = int(w * right_pct), int(h * bot_pct)
+        # Couleur centrale de la boîte (échantillonnée depuis le template)
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        box_color = img.getpixel((cx, cy))[:3]
+        # Remplissage intérieur (petite marge pour préserver le bord de la boîte)
+        mg = int(h * 0.008)
+        draw.rectangle([x1 + mg, y1 + mg, x2 - mg, y2 - mg], fill=box_color)
+        # Texte centré verticalement, indenté horizontalement
+        text_x = x1 + int(w * 0.012)
+        text_h  = int(h * 0.050)
+        text_y  = y1 + (y2 - y1 - text_h) // 2
+        draw.text((text_x, text_y), text.upper(), fill="white", font=font_nom)
 
-    # Texte blanc dans les boîtes bleues
-    draw.text((box_x, nom_y),    nom.upper(),    fill="white", font=font_nom,
-              stroke_width=1, stroke_fill="white")
-    draw.text((box_x, prenom_y), prenom.upper(), fill="white", font=font_nom,
-              stroke_width=1, stroke_fill="white")
-    # Matricule en bleu foncé
-    draw.text((box_x, mat_y), f"N° matricule : {matricule}",
-              fill="#1a3a6b", font=font_mat)
+    # ── Boîte NOM (51.3 % → 60.2 % hauteur, 6.9 % → 50.5 % largeur) ────────
+    fill_box_and_write(0.069, 0.513, 0.505, 0.602, nom)
+
+    # ── Boîte PRENOM (63.9 % → 72.5 % hauteur) ───────────────────────────────
+    fill_box_and_write(0.069, 0.639, 0.505, 0.725, prenom)
+
+    # ── Matricule (couvrir le texte template puis réécrire) ───────────────────
+    mat_x  = int(w * 0.069)
+    mat_y  = int(h * 0.833)
+    mat_x2 = int(w * 0.430)
+    mat_y2 = mat_y + int(h * 0.048)
+    # Couleur de fond à cet endroit
+    bg_color = img.getpixel((mat_x + 10, mat_y + int(h * 0.020)))[:3]
+    draw.rectangle([mat_x, mat_y, mat_x2, mat_y2], fill=bg_color)
+    draw.text((mat_x, mat_y), f"N° matricule : {matricule}", fill="#1a3a6b", font=font_mat)
 
     buf = BytesIO()
     img.convert("RGB").save(buf, format="PNG", optimize=True)
