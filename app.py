@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from functools import wraps
+from sqlalchemy.pool import NullPool
 import stripe, os, uuid
 
 app = Flask(__name__)
@@ -18,6 +19,12 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# NullPool requis pour les environnements serverless (Vercel) avec PostgreSQL
+if DATABASE_URL.startswith("postgresql"):
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "poolclass": NullPool,
+    }
 db = SQLAlchemy(app)
 
 # ── MAIL ──────────────────────────────────────────────────────────────────────
