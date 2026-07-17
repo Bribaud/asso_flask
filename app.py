@@ -484,25 +484,53 @@ def adhesion_success():
         return redirect(url_for("adhesion"))
     try:
         checkout = stripe.checkout.Session.retrieve(session_id)
-        if checkout.payment_status != "paid":
-            flash("Le paiement n'a pas été confirmé.", "warning")
-            return redirect(url_for("adhesion"))
+    except Exception as e:
+        print(f"[Stripe] retrieve error: {e}", flush=True)
+        flash("Erreur lors de la vérification du paiement Stripe.", "danger")
+        return redirect(url_for("adhesion"))
 
+    if checkout.payment_status != "paid":
+        flash("Le paiement n'a pas été confirmé.", "warning")
+        return redirect(url_for("adhesion"))
+
+    try:
         adhesion_id = int(checkout.metadata.get("adhesion_id", 0))
-        adh = Adhesion.query.get(adhesion_id)
+        adh = db.session.get(Adhesion, adhesion_id)  # API SQLAlchemy 2.x
         if not adh:
             flash("Adhésion introuvable.", "danger")
             return redirect(url_for("adhesion"))
 
-        # Activation si pas encore traitée
+        # Activation uniquement si pas encore traitée
         if adh.statut == "en_attente":
-            adh.statut    = "actif"
-            adh.matricule = f"AKF-{adh.id:04d}"
-            db.session.commit()
-
-            # Génération et envoi de la carte membre
             try:
-                carte = generate_carte_membre(adh.prenom, adh.nom, adh.matricule)
+                adh.statut    = "actif"
+                adh.matricule = f"AKF-{adh.id:04d}"
+                db.session.commit()
+            except Exception as e:
+                print(f"[adhesion_success] commit error: {e}", flush=True)
+                db.session.rollback()
+                # Colonnes absentes → on tente via SQL direct
+                try:
+                    from sqlalchemy import text
+                    with db.engine.connect() as conn:
+                        conn.execute(text(
+                            "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)"
+                        ))
+                        conn.execute(text(
+                            "ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)"
+                        ))
+                        conn.execute(text(
+                            "UPDATE adhesion SET statut='actif', matricule=:mat WHERE id=:id"
+                        ), {"mat": f"AKF-{adh.id:04d}", "id": adh.id})
+                        conn.commit()
+                    db.session.refresh(adh)
+                except Exception as e2:
+                    print(f"[adhesion_success] fallback SQL error: {e2}", flush=True)
+
+            # Envoi de la carte (indépendant du commit)
+            try:
+                mat = adh.matricule or f"AKF-{adh.id:04d}"
+                carte = generate_carte_membre(adh.prenom, adh.nom, mat)
                 msg   = MailMessage(
                     subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
                     recipients=[adh.email],
@@ -514,7 +542,7 @@ def adhesion_success():
                     <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
                     <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
                       <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
-                          <td><strong>{adh.matricule}</strong></td></tr>
+                          <td><strong>{mat}</strong></td></tr>
                       <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
                           <td>{adh.prenom} {adh.nom}</td></tr>
                       <tr><td style="padding:5px 0;color:#6b7280">Type</td>
@@ -526,8 +554,7 @@ def adhesion_success():
                     {email_footer()}
                   </div>
                 </div>"""
-                msg.attach(f"carte_membre_{adh.matricule}.png", "image/png", carte)
-                # Notification au bureau
+                msg.attach(f"carte_membre_{mat}.png", "image/png", carte)
                 notif = MailMessage(
                     subject=f"[AKF] Nouvelle adhésion validée — {adh.prenom} {adh.nom}",
                     recipients=[MAIL_NOTIFICATIONS],
@@ -536,19 +563,19 @@ def adhesion_success():
                   {email_header()}
                   <div style="padding:30px;background:#fff">
                     <p><strong>{adh.prenom} {adh.nom}</strong> vient de finaliser son adhésion
-                    (matricule <strong>{adh.matricule}</strong>).</p>
+                    (matricule <strong>{mat}</strong>).</p>
                     {email_footer()}
                   </div>
                 </div>"""
                 send_mail_safe(msg)
                 send_mail_safe(notif)
             except Exception as e:
-                print(f"[Carte/mail] erreur : {e}")
+                print(f"[carte/mail] erreur : {e}", flush=True)
 
         return render_template("adhesion_success.html", asso=ASSO, adh=adh, now=datetime.now())
 
     except Exception as e:
-        print(f"[adhesion_success] erreur : {e}")
+        print(f"[adhesion_success] erreur générale: {e}", flush=True)
         flash("Erreur lors de la vérification du paiement.", "danger")
         return redirect(url_for("adhesion"))
 
