@@ -1,0 +1,47 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Message de {{ msg.nom }}{% endblock %}
+{% block page_title %}Message de {{ msg.nom }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:1rem">
+  <a href="{{ url_for('admin_messages') }}" class="btn btn-gray"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+</div>
+
+<div class="msg-box">
+  <div class="msg-meta">
+    <div>
+      <strong>Expéditeur</strong>
+      {{ msg.nom }}
+    </div>
+    <div>
+      <strong>Email</strong>
+      <a href="mailto:{{ msg.email }}" style="color:var(--green)">{{ msg.email }}</a>
+    </div>
+    <div>
+      <strong>Sujet</strong>
+      {{ msg.sujet or '(aucun sujet)' }}
+    </div>
+    <div>
+      <strong>Date</strong>
+      {{ msg.date_creation.strftime('%d/%m/%Y à %H:%M') }}
+    </div>
+    <div>
+      <strong>Statut</strong>
+      <span class="badge badge-green"><i class="fa-solid fa-check"></i> Lu</span>
+    </div>
+  </div>
+
+  <div class="msg-body">{{ msg.message }}</div>
+
+  <div style="margin-top:2rem;display:flex;gap:.75rem">
+    <a href="mailto:{{ msg.email }}?subject=Re: {{ msg.sujet }}" class="btn btn-green">
+      <i class="fa-solid fa-reply"></i> Répondre par email
+    </a>
+    <a href="{{ url_for('admin_message_supprimer', id=msg.id) }}" class="btn btn-red" onclick="return confirm('Supprimer ce message ?')">
+      <i class="fa-solid fa-trash"></i> Supprimer
+    </a>
+  </div>
+</div>
+
+{% endblock %}

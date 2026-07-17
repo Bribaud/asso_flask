@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{{ projet.titre }} – {{ asso.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s } .delay-4 { animation-delay:.4s }
+
+.reveal { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-left { opacity:0; transform:translateX(-30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.visible, .reveal-left.visible { opacity:1; transform:none; }
+
+.projet-detail-img {
+  width:100%; max-height:450px; object-fit:cover;
+  border-radius:var(--radius); margin-bottom:2rem;
+  box-shadow:0 8px 32px rgba(0,0,0,.12);
+  transition:transform .4s ease;
+}
+.projet-detail-img:hover { transform:scale(1.01); }
+
+.info-row {
+  display:flex; align-items:center; gap:.75rem;
+  padding:.75rem 0; border-bottom:1px solid var(--border);
+  font-size:.9rem;
+}
+.info-row:last-child { border-bottom:none; }
+.info-row i { width:20px; color:var(--green); flex-shrink:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <span class="anim-fade-up card-tag"
+          style="background:rgba(255,255,255,.2);color:#fff;margin-bottom:1rem;display:inline-block">
+      {{ projet.categorie }}
+    </span>
+    <h1 class="anim-fade-up delay-2">{{ projet.titre }}</h1>
+    <p class="anim-fade-up delay-3">{{ projet.description }}</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container two-col-layout">
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="reveal-left">
+      {% if projet.image %}
+        <img src="{{ url_for('static', filename='uploads/' + projet.image) }}"
+             alt="{{ projet.titre }}" class="projet-detail-img" />
+      {% endif %}
+
+      <div class="form-card" style="margin:0">
+        <h2 style="font-family:var(--font-head);margin-bottom:1rem">
+          À propos de ce projet
+        </h2>
+        {% if projet.contenu %}
+          <div style="color:var(--text-muted);line-height:1.85;white-space:pre-wrap">{{ projet.contenu }}</div>
+        {% else %}
+          <p style="color:var(--text-muted)">{{ projet.description }}</p>
+        {% endif %}
+
+        <div style="margin-top:2rem;display:flex;gap:.75rem;flex-wrap:wrap">
+          <a href="{{ url_for('projets') }}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Tous les projets
+          </a>
+          <a href="{{ url_for('don') }}" class="btn btn-primary">
+            <i class="fa-solid fa-heart"></i> Soutenir ce projet
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- Infos projet -->
+      <div class="info-card reveal">
+        <h3 style="font-family:var(--font-head);margin-bottom:1rem">
+          <i class="fa-solid fa-circle-info" style="color:var(--green);margin-right:.5rem"></i>
+          Informations
+        </h3>
+        <div class="info-row">
+          <i class="fa-solid fa-tag"></i>
+          <div>
+            <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Catégorie</div>
+            <div style="font-weight:600">{{ projet.categorie }}</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <i class="fa-regular fa-calendar"></i>
+          <div>
+            <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Créé le</div>
+            <div style="font-weight:600">{{ projet.date_creation.strftime('%d/%m/%Y') }}</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <i class="fa-solid fa-location-dot"></i>
+          <div>
+            <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Lieu</div>
+            <div style="font-weight:600">Koungheul, Sénégal</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <i class="fa-solid fa-circle-check"></i>
+          <div>
+            <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em">Statut</div>
+            <span class="badge badge-green">En cours</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Soutenir -->
+      <div class="info-card reveal" style="background:var(--green-light);border-color:var(--green)">
+        <h3 style="font-family:var(--font-head);margin-bottom:.75rem;color:var(--green)">
+          <i class="fa-solid fa-heart"></i> Soutenez ce projet
+        </h3>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.7">
+          Votre don contribue directement au financement de ce projet sur le terrain.
+        </p>
+        <a href="{{ url_for('don') }}" class="btn btn-green" style="width:100%;justify-content:center">
+          <i class="fa-solid fa-heart"></i> Faire un don
+        </a>
+      </div>
+
+      <!-- Porteur -->
+      <div class="info-card reveal">
+        <h3 style="font-family:var(--font-head);margin-bottom:.75rem">Porté par</h3>
+        <p style="font-weight:600;color:var(--green)">{{ asso.nom }}</p>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:.25rem">{{ asso.siege }}</p>
+        <a href="{{ url_for('contact') }}" class="btn btn-outline" style="margin-top:1rem;font-size:.82rem">
+          <i class="fa-solid fa-envelope"></i> Nous contacter
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal, .reveal-left').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

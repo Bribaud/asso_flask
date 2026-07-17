@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}{{ evt.titre }} – {{ asso.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes pulse  { 0%,100% { box-shadow:0 0 0 0 rgba(26,122,74,.4) } 70% { box-shadow:0 0 0 10px rgba(26,122,74,0) } }
+
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s } .delay-4 { animation-delay:.4s }
+
+.reveal       { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-left  { opacity:0; transform:translateX(-30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-right { opacity:0; transform:translateX(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity:1; transform:none; }
+
+.evt-img {
+  width:100%; max-height:420px; object-fit:cover;
+  border-radius:var(--radius); margin-bottom:2rem;
+  box-shadow:0 8px 32px rgba(0,0,0,.12);
+  transition:transform .4s ease;
+}
+.evt-img:hover { transform:scale(1.01); }
+
+.info-row {
+  display:flex; align-items:center; gap:.85rem;
+  padding:.85rem 0; border-bottom:1px solid var(--border); font-size:.9rem;
+}
+.info-row:last-child { border-bottom:none; }
+.info-row i { width:20px; color:var(--green); flex-shrink:0; text-align:center; }
+.info-row strong { display:block; font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+
+.inscrire-btn {
+  width:100%; justify-content:center; font-size:1rem; padding:1rem;
+  animation:pulse 2s infinite;
+}
+
+.mini-event-card {
+  display:flex; gap:.85rem; align-items:center;
+  padding:.65rem 0; border-bottom:1px solid var(--border);
+  text-decoration:none; color:var(--text); transition:color .15s, padding-left .15s;
+}
+.mini-event-card:last-child { border-bottom:none; }
+.mini-event-card:hover { color:var(--green); padding-left:.3rem; }
+.mini-event-date {
+  width:42px; height:42px; background:var(--green-light); border-radius:8px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  flex-shrink:0; color:var(--green); line-height:1.1;
+}
+.mini-event-date span:first-child { font-weight:800; font-size:1.05rem; }
+.mini-event-date span:last-child  { font-size:.58rem; text-transform:uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <span class="anim-fade-in"
+          style="background:rgba(255,255,255,.2);color:#fff;padding:.3rem .9rem;
+                 border-radius:99px;font-size:.75rem;font-weight:700;letter-spacing:.06em;
+                 text-transform:uppercase;display:inline-block;margin-bottom:1rem">
+      {{ evt.type_event }}
+    </span>
+    <h1 class="anim-fade-up delay-2">{{ evt.titre }}</h1>
+    <p class="anim-fade-up delay-3">
+      <i class="fa-regular fa-calendar"></i>
+      {{ evt.date_event.strftime('%A %d %B %Y') }} à {{ evt.date_event.strftime('%H:%M') }}
+      {% if evt.heure_fin %} – {{ evt.heure_fin }}{% endif %}
+    </p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container two-col-layout">
+
+    <!-- CONTENU -->
+    <div class="reveal-left">
+      {% if evt.image %}
+        <img src="{{ url_for('static', filename='uploads/' + evt.image) }}"
+             alt="{{ evt.titre }}" class="evt-img" />
+      {% endif %}
+
+      <div class="form-card" style="margin:0">
+        <h2 style="font-family:var(--font-head);margin-bottom:1.25rem">
+          À propos de cet événement
+        </h2>
+        {% if evt.description %}
+          <div style="color:var(--text-muted);line-height:1.85;white-space:pre-wrap">{{ evt.description }}</div>
+        {% else %}
+          <p style="color:var(--text-muted)">Aucune description disponible.</p>
+        {% endif %}
+
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:2rem">
+          {% if evt.lien_externe %}
+          <a href="{{ evt.lien_externe }}" target="_blank" class="btn btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> S'inscrire
+          </a>
+          {% endif %}
+          <a href="{{ url_for('evenements') }}" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-left"></i> Tous les événements
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- S'inscrire -->
+      {% if evt.lien_externe and evt.date_event > now %}
+      <div class="info-card reveal" style="background:var(--green-light);border-color:var(--green);text-align:center">
+        <div style="width:56px;height:56px;background:rgba(26,122,74,.15);border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;
+                    font-size:1.4rem;color:var(--green)">
+          <i class="fa-solid fa-ticket"></i>
+        </div>
+        <h3 style="font-family:var(--font-head);margin-bottom:.5rem;color:var(--green)">Participez !</h3>
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+          Réservez votre place dès maintenant.
+        </p>
+        <a href="{{ evt.lien_externe }}" target="_blank" class="btn btn-green inscrire-btn">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> S'inscrire
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Infos pratiques -->
+      <div class="info-card reveal">
+        <h3 style="font-family:var(--font-head);margin-bottom:1rem">
+          <i class="fa-solid fa-circle-info" style="color:var(--green);margin-right:.4rem"></i>
+          Informations pratiques
+        </h3>
+        <div>
+          <div class="info-row">
+            <i class="fa-solid fa-tag"></i>
+            <div><strong>Type</strong><span>{{ evt.type_event }}</span></div>
+          </div>
+          <div class="info-row">
+            <i class="fa-regular fa-calendar"></i>
+            <div><strong>Date</strong><span>{{ evt.date_event.strftime('%d/%m/%Y') }}</span></div>
+          </div>
+          <div class="info-row">
+            <i class="fa-regular fa-clock"></i>
+            <div>
+              <strong>Heure</strong>
+              <span>{{ evt.date_event.strftime('%H:%M') }}{% if evt.heure_fin %} – {{ evt.heure_fin }}{% endif %}</span>
+            </div>
+          </div>
+          {% if evt.lieu %}
+          <div class="info-row">
+            <i class="fa-solid fa-location-dot"></i>
+            <div><strong>Lieu</strong><span>{{ evt.lieu }}</span></div>
+          </div>
+          {% endif %}
+          {% if evt.adresse %}
+          <div class="info-row">
+            <i class="fa-solid fa-map"></i>
+            <div><strong>Adresse</strong><span>{{ evt.adresse }}</span></div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Organisateur -->
+      <div class="info-card reveal">
+        <h3 style="font-family:var(--font-head);margin-bottom:.75rem">Organisé par</h3>
+        <p style="font-weight:600;color:var(--green)">{{ asso.nom }}</p>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:.25rem">{{ asso.siege }}</p>
+        <a href="{{ url_for('contact') }}" class="btn btn-outline" style="margin-top:1rem;font-size:.82rem">
+          <i class="fa-solid fa-envelope"></i> Nous contacter
+        </a>
+      </div>
+
+      <!-- Prochains événements -->
+      {% if autres %}
+      <div class="info-card reveal">
+        <h3 style="font-family:var(--font-head);margin-bottom:1rem">Prochains événements</h3>
+        {% for a in autres %}
+        <a href="{{ url_for('evenement_detail', slug=a.slug) }}" class="mini-event-card">
+          <div class="mini-event-date">
+            <span>{{ a.date_event.strftime('%d') }}</span>
+            <span>{{ a.date_event.strftime('%b') }}</span>
+          </div>
+          <div>
+            <p style="font-weight:600;font-size:.88rem;margin:0">{{ a.titre }}</p>
+            <p style="font-size:.75rem;color:var(--text-muted);margin:0">{{ a.type_event }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

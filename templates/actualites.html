@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Actualités – {{ asso.nom_court }}{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <h1>Actualités</h1>
+    <p>Restez informés de nos dernières actions</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+
+    <!-- FILTRES -->
+    {% set categories = actualites | map(attribute='categorie') | select | unique | list %}
+
+    {% if categories %}
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:2rem;justify-content:center">
+
+      <button class="filtre-actu active" onclick="filtrer('tous', this)">
+        <i class="fa-solid fa-layer-group"></i>
+        Toutes ({{ actualites|length }})
+      </button>
+
+      {% for cat in categories %}
+      <button class="filtre-actu" onclick="filtrer('{{ cat }}', this)">
+
+        {% if cat == 'Portrait' %}
+          <i class="fa-solid fa-user"></i>
+
+        {% elif cat == 'Événements' %}
+          <i class="fa-regular fa-calendar"></i>
+
+        {% elif cat == 'Projets' %}
+          <i class="fa-solid fa-diagram-project"></i>
+
+        {% elif cat == 'Administratif' %}
+          <i class="fa-regular fa-folder-open"></i>
+
+        {% else %}
+          <i class="fa-regular fa-newspaper"></i>
+        {% endif %}
+
+        {{ cat }}
+        ({{ actualites | selectattr('categorie', 'equalto', cat) | list | length }})
+
+      </button>
+      {% endfor %}
+
+    </div>
+    {% endif %}
+
+    <!-- LISTE DES ACTUALITÉS -->
+    <div class="cards-grid" id="actu-grid">
+
+      {% for a in actualites %}
+
+      <article class="card actu-card" data-categorie="{{ a.categorie }}">
+
+        {% if a.image %}
+        <img
+          src="{{ url_for('static', filename='uploads/' ~ a.image) }}"
+          alt="{{ a.titre }}"
+          style="width:100%;height:220px;object-fit:cover;border-radius:var(--radius) var(--radius) 0 0"
+        />
+        {% endif %}
+
+        <div class="card-body">
+
+          <div class="card-meta">
+
+            <span class="card-tag {% if a.categorie == 'Portrait' %}tag-portrait{% endif %}">
+
+              {% if a.categorie == 'Portrait' %}
+                <i class="fa-solid fa-user"></i>
+
+              {% elif a.categorie == 'Événements' %}
+                <i class="fa-regular fa-calendar"></i>
+
+              {% elif a.categorie == 'Projets' %}
+                <i class="fa-solid fa-diagram-project"></i>
+
+              {% elif a.categorie == 'Administratif' %}
+                <i class="fa-regular fa-folder-open"></i>
+
+              {% else %}
+                <i class="fa-regular fa-newspaper"></i>
+              {% endif %}
+
+              {{ a.categorie }}
+
+            </span>
+
+            <span class="card-date">
+              {{ a.date_creation.strftime('%d/%m/%Y') }}
+            </span>
+
+          </div>
+
+          <h3>
+            <a href="{{ url_for('actualite_detail', slug=a.slug) }}">
+              {{ a.titre }}
+            </a>
+          </h3>
+
+          {% if a.extrait %}
+          <p>
+            {{ a.extrait[:120] }}
+            {% if a.extrait|length > 120 %}…{% endif %}
+          </p>
+          {% endif %}
+
+          <a
+            href="{{ url_for('actualite_detail', slug=a.slug) }}"
+            class="card-link"
+          >
+            Lire l'article →
+          </a>
+
+        </div>
+
+      </article>
+
+      {% else %}
+
+      <p
+        style="color:var(--text-muted);
+               text-align:center;
+               grid-column:1/-1"
+      >
+        Aucune actualité pour le moment.
+      </p>
+
+      {% endfor %}
+
+    </div>
+
+    <!-- MESSAGE SI AUCUN RÉSULTAT -->
+    <p
+      id="aucun-resultat"
+      style="display:none;
+             text-align:center;
+             color:var(--text-muted);
+             margin-top:2rem"
+    >
+      Aucune actualité dans cette catégorie.
+    </p>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.filtre-actu{
+  padding:.45rem 1.1rem;
+  border:1.5px solid var(--border);
+  border-radius:999px;
+  background:var(--bg);
+  font-size:.85rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s;
+  color:var(--text);
+}
+
+.filtre-actu:hover{
+  border-color:var(--green);
+  color:var(--green);
+}
+
+.filtre-actu.active{
+  background:var(--green);
+  color:#fff;
+  border-color:var(--green);
+}
+
+.filtre-actu i,
+.card-tag i{
+  margin-right:6px;
+}
+
+.tag-portrait{
+  background:#fef3c7 !important;
+  color:#92400e !important;
+}
+
+.actu-card{
+  transition:.2s;
+}
+
+.actu-card:hover{
+  transform:translateY(-4px);
+}
+
+.actu-card.masque{
+  display:none;
+}
+
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+function filtrer(cat, btn){
+
+  document.querySelectorAll('.filtre-actu')
+    .forEach(b => b.classList.remove('active'));
+
+  btn.classList.add('active');
+
+  let nb = 0;
+
+  document.querySelectorAll('.actu-card')
+    .forEach(card => {
+
+      const visible =
+        cat === 'tous' ||
+        card.dataset.categorie === cat;
+
+      card.classList.toggle('masque', !visible);
+
+      if(visible){
+        nb++;
+      }
+
+    });
+
+  document.getElementById('aucun-resultat').style.display =
+    nb === 0 ? 'block' : 'none';
+}
+
+</script>
+{% endblock %}

@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+{% block title %}À propos – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Découvrez l'histoire, les valeurs et les membres du bureau de l'Association des Koungheulois de France (AKF), fondée le 11 mars 2026 à Limoges.{% endblock %}
+{% block og_title %}À propos de l'AKF – {{ asso.nom }}{% endblock %}
+{% block og_url %}https://asso-flask.onrender.com/presentation{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp  { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+@keyframes float   { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+@keyframes pulse   { 0%,100% { transform:scale(1) } 50% { transform:scale(1.08) } }
+
+.anim-fade-up  { opacity:0; animation:fadeUp .7s ease forwards; }
+.anim-fade-in  { opacity:0; animation:fadeIn .8s ease forwards; }
+.delay-1 { animation-delay:.1s } .delay-2 { animation-delay:.2s }
+.delay-3 { animation-delay:.3s } .delay-4 { animation-delay:.4s }
+.delay-5 { animation-delay:.5s }
+
+.reveal       { opacity:0; transform:translateY(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal-left  { opacity:0; transform:translateX(-40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal-right { opacity:0; transform:translateX(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity:1; transform:none; }
+
+/* Chiffres clés */
+.chiffre-card {
+  background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+  padding:2rem 1rem; text-align:center;
+  transition:transform .25s, box-shadow .25s;
+  position:relative; overflow:hidden;
+}
+.chiffre-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
+  background:var(--green); transform:scaleX(0); transition:transform .3s;
+}
+.chiffre-card:hover { transform:translateY(-6px); box-shadow:var(--shadow); }
+.chiffre-card:hover::after { transform:scaleX(1); }
+.chiffre-num {
+  font-size:2.8rem; font-weight:800; color:var(--green);
+  font-family:var(--font-head); line-height:1;
+}
+
+/* Domaines */
+.apropos-card {
+  transition:transform .25s, box-shadow .25s;
+  position:relative; overflow:hidden;
+}
+.apropos-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--green); transform:scaleX(0); transition:transform .3s;
+  transform-origin:left;
+}
+.apropos-card:hover { transform:translateY(-6px); box-shadow:var(--shadow); }
+.apropos-card:hover::before { transform:scaleX(1); }
+.apropos-icon { transition:background .3s, color .3s; }
+.apropos-card:hover .apropos-icon { background:var(--green) !important; color:#fff !important; }
+
+/* ── ORGANIGRAMME ── */
+.organigramme {
+  display:flex; flex-direction:column; align-items:center; gap:0;
+  padding:1rem 0;
+}
+.orga-level {
+  display:flex; gap:1.25rem; justify-content:center; flex-wrap:wrap;
+  width:100%;
+}
+.orga-connector {
+  width:2px; height:32px; background:var(--green); opacity:.3;
+  margin:0 auto;
+}
+
+/* Cartes */
+.orga-card {
+  background:var(--bg); border:2px solid var(--border); border-radius:14px;
+  padding:1.25rem 1.5rem; display:flex; align-items:center; gap:1rem;
+  transition:transform .25s, box-shadow .25s, border-color .25s;
+  cursor:default; min-width:240px;
+}
+.orga-card:hover {
+  transform:translateY(-4px); box-shadow:0 8px 24px rgba(26,122,74,.12);
+  border-color:var(--green);
+}
+
+/* Président */
+.orga-card-president {
+  border-color:var(--green); border-width:2.5px;
+  background:var(--green-light); min-width:260px;
+  box-shadow:0 4px 16px rgba(26,122,74,.15);
+}
+.orga-card-president .orga-info strong { color:var(--green); font-size:1rem; }
+
+/* Niveau 2 */
+.orga-card-level2 { border-color:var(--border); }
+.orga-card-level2:hover { border-color:var(--green); }
+
+/* Niveau 3 */
+.orga-card-level3 {
+  border-style:dashed; font-size:.9rem;
+}
+
+/* Photos */
+.orga-photo {
+  width:100px; height:100px; border-radius:50%; overflow:hidden;
+  background:var(--green); display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:700; font-size:2rem; flex-shrink:0;
+  border:4px solid var(--green);
+  box-shadow:0 4px 12px rgba(26,122,74,.25);
+}
+.orga-photo img { width:100%; height:100%; object-fit:cover; }
+.orga-photo-sm { width:80px; height:80px; font-size:1.6rem; }
+
+.orga-info { display:flex; flex-direction:column; gap:.15rem; }
+.orga-info strong { font-size:.88rem; font-weight:700; display:block; }
+.orga-info span { font-size:.75rem; color:var(--text-muted); }
+
+@media (max-width:768px) {
+  .orga-level { flex-direction:column; align-items:center; }
+  .orga-card  { min-width:unset; width:100%; max-width:300px; }
+}
+  text-align:center; padding:1.5rem;
+  border-radius:var(--radius); transition:transform .25s, background .25s;
+}
+.valeur-item:hover { transform:translateY(-5px); background:var(--bg); }
+.valeur-icon {
+  width:64px; height:64px; background:var(--green-light); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;
+  font-size:1.6rem; color:var(--green); transition:background .3s, color .3s;
+  animation:float 3s ease-in-out infinite;
+}
+.valeur-item:hover .valeur-icon { background:var(--green); color:#fff; }
+
+/* Bureau */
+.bureau-card {
+  transition:transform .25s, box-shadow .25s;
+}
+.bureau-card:hover { transform:translateY(-6px); box-shadow:var(--shadow); }
+.bureau-photo { transition:transform .3s; }
+.bureau-card:hover .bureau-photo { transform:scale(1.03); }
+
+/* Blockquote */
+blockquote {
+  transition:transform .25s, box-shadow .25s;
+}
+blockquote:hover { transform:translateX(4px); }
+
+/* CTA section */
+.cta-rejoindre {
+  background:linear-gradient(135deg, var(--green) 0%, #0d5c35 100%);
+  position:relative; overflow:hidden;
+}
+.cta-rejoindre::before {
+  content:''; position:absolute; top:-40%; right:-10%;
+  width:400px; height:400px; border-radius:50%;
+  background:rgba(255,255,255,.05);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <span class="section-tag anim-fade-in"
+          style="background:rgba(255,255,255,.2);color:#fff;margin-bottom:1rem;display:inline-block">
+      FONDÉE LE {{ asso.fondation }}
+    </span>
+    <h1 class="anim-fade-up delay-2">À propos de l'AKF</h1>
+    <p class="anim-fade-up delay-3">{{ asso.nom }} — Solidarité, Entraide et Développement</p>
+  </div>
+</div>
+
+<!-- HISTOIRE -->
+<section class="section">
+  <div class="container">
+    <div class="two-col-layout">
+      <div class="reveal-left">
+        <span class="section-tag">NOTRE HISTOIRE</span>
+        <h2 style="font-family:var(--font-head);margin:1rem 0">
+          Une association née de la solidarité
+        </h2>
+        <p style="color:var(--text-muted);line-height:1.85">
+          L'<strong>Association des Koungheulois de France (AKF)</strong> est née de la volonté
+          de femmes et d'hommes originaires de Koungheul, établis en France, de rester unis
+          autour de leurs racines et de contribuer au développement de leur territoire d'origine.
+        </p>
+        <p style="color:var(--text-muted);margin-top:1rem;line-height:1.85">
+          Au fil des années, de nombreux ressortissants de Koungheul ont construit leur vie en
+          France tout en conservant un attachement profond à leur ville, à leur culture et à
+          leurs familles restées au pays. Face aux défis sociaux, éducatifs, sanitaires et
+          économiques rencontrés par les populations locales, l'idée de créer une structure
+          organisée s'est naturellement imposée.
+        </p>
+        <p style="color:var(--text-muted);margin-top:1rem;line-height:1.85">
+          C'est dans cet esprit de solidarité, de responsabilité et d'engagement citoyen que
+          l'AKF a vu le jour. L'association a pour mission de rassembler les ressortissants de
+          Koungheul vivant en France, de renforcer les liens entre les membres de la diaspora
+          et de soutenir des initiatives concrètes en faveur du développement de Koungheul.
+        </p>
+        <p style="color:var(--text-muted);margin-top:1rem;line-height:1.85">
+          Depuis sa création, l'AKF œuvre pour promouvoir l'entraide, la cohésion sociale et
+          la participation active de la diaspora aux projets d'intérêt général. Elle constitue
+          également un espace d'échange, de partage et de valorisation de notre patrimoine culturel.
+        </p>
+        <p style="color:var(--text-muted);margin-top:1rem;line-height:1.85">
+          Aujourd'hui, l'association ambitionne de devenir un acteur de référence capable de
+          mobiliser les compétences, les ressources et les énergies de la diaspora au service
+          des populations de Koungheul et des générations futures.
+        </p>
+        <blockquote style="border-left:4px solid var(--green);padding:1rem 1.5rem;
+                           margin:1.5rem 0;background:var(--green-light);border-radius:0 8px 8px 0">
+          <p style="font-style:italic;color:var(--text);line-height:1.7;margin:0">
+            « L'AKF est avant tout une famille de solidarité et d'entraide entre les Koungheulois
+            établis en France. En renforçant nos liens, en nous soutenant mutuellement et en
+            partageant nos compétences, nous construisons ensemble une communauté forte, engagée
+            pour le bien-être de ses membres et le développement de Koungheul. »
+          </p>
+          <footer style="margin-top:.75rem;font-size:.85rem;font-weight:600;color:var(--green)">
+            — Le Bureau de l'AKF
+          </footer>
+        </blockquote>
+      </div>
+
+      <!-- INFOS LÉGALES -->
+      <div class="info-card reveal-right">
+        <h3 style="font-family:var(--font-head);margin-bottom:1.25rem">
+          <i class="fa-solid fa-file-contract" style="color:var(--green);margin-right:.5rem"></i>
+          Informations légales
+        </h3>
+        <table class="info-table">
+          <tr><td>Dénomination</td><td><strong>{{ asso.nom }}</strong></td></tr>
+          <tr><td>RNA</td><td>{{ asso.rna }}</td></tr>
+          <tr><td>SIREN</td><td>{{ asso.siren }}</td></tr>
+          <tr><td>SIRET</td><td>{{ asso.siret }}</td></tr>
+          <tr><td>Siège social</td><td>{{ asso.siege }}</td></tr>
+          <tr><td>Fondation</td><td>{{ asso.fondation }}</td></tr>
+          <tr><td>Déclaration JO</td><td>{{ asso.declaration }}</td></tr>
+          <tr><td>APE</td><td>88.99B – Action sociale</td></tr>
+          <tr><td>Régime</td><td>Loi 1901</td></tr>
+          <tr><td>ESS</td><td><span class="badge badge-green">✓ Oui</span></td></tr>
+        </table>
+        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+          <a href="{{ url_for('contact') }}" class="btn btn-green" style="width:100%;justify-content:center">
+            <i class="fa-solid fa-envelope"></i> Nous contacter
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHIFFRES CLÉS -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">EN CHIFFRES</span>
+      <h2>L'AKF en quelques chiffres</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;text-align:center">
+      <div class="chiffre-card reveal delay-1">
+        <div class="chiffre-num" data-count="60">60</div>
+        <div style="font-weight:600;margin:.5rem 0">Membres fondateurs</div>
+        <div style="font-size:.82rem;color:var(--text-muted)">Répartis dans toute la France</div>
+      </div>
+      <div class="chiffre-card reveal delay-2">
+        <div class="chiffre-num" data-count="13">13</div>
+        <div style="font-weight:600;margin:.5rem 0">Membres du bureau</div>
+        <div style="font-size:.82rem;color:var(--text-muted)">Élus le 11 mars 2026</div>
+      </div>
+      <div class="chiffre-card reveal delay-3">
+        <div class="chiffre-num" data-count="4">4</div>
+        <div style="font-weight:600;margin:.5rem 0">Domaines d'action</div>
+        <div style="font-size:.82rem;color:var(--text-muted)">Éducation, Santé, Économie, Social</div>
+      </div>
+      <div class="chiffre-card reveal delay-4">
+        <div class="chiffre-num">2026</div>
+        <div style="font-weight:600;margin:.5rem 0">Année de création</div>
+        <div style="font-size:.82rem;color:var(--text-muted)">Déclarée au JO le 28 avril</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOMAINES D'ACTION -->
+<section class="section">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">NOS DOMAINES</span>
+      <h2>Champs d'action</h2>
+      <p style="color:var(--text-muted);max-width:600px;margin:.75rem auto 0">
+        L'AKF intervient sur quatre domaines essentiels pour le développement
+        durable de Koungheul et le bien-être de ses habitants.
+      </p>
+    </div>
+    <div class="apropos-grid">
+      <div class="apropos-card reveal delay-1">
+        <div class="apropos-icon"><i class="fa-solid fa-book-open"></i></div>
+        <h3>Éducation</h3>
+        <p>Soutien à la scolarisation, fournitures scolaires, accompagnement des élèves
+           et des familles pour garantir l'accès à l'éducation pour tous.</p>
+      </div>
+      <div class="apropos-card reveal delay-2">
+        <div class="apropos-icon"><i class="fa-solid fa-hospital"></i></div>
+        <h3>Santé</h3>
+        <p>Accès aux soins, financement de consultations médicales et soutien aux
+           structures sanitaires de la région de Koungheul.</p>
+      </div>
+      <div class="apropos-card reveal delay-3">
+        <div class="apropos-icon"><i class="fa-solid fa-seedling"></i></div>
+        <h3>Développement économique</h3>
+        <p>Soutien à l'agriculture, à l'artisanat et aux initiatives locales pour
+           renforcer l'autonomie et la prospérité des communautés.</p>
+      </div>
+      <div class="apropos-card reveal delay-4">
+        <div class="apropos-icon"><i class="fa-solid fa-handshake"></i></div>
+        <h3>Cohésion sociale</h3>
+        <p>Renforcer les liens entre la diaspora et le territoire d'origine,
+           organiser des événements fédérateurs et culturels.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALEURS -->
+<section class="section section-light">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">NOS VALEURS</span>
+      <h2>Ce qui nous guide</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem">
+      <div class="valeur-item reveal delay-1">
+        <div class="valeur-icon"><i class="fa-solid fa-heart"></i></div>
+        <h3 style="font-family:var(--font-head);margin-bottom:.5rem">Solidarité</h3>
+        <p style="color:var(--text-muted);font-size:.9rem;line-height:1.7">
+          Nous croyons en la force du collectif. Ensemble, nous pouvons accomplir
+          ce qu'aucun d'entre nous ne pourrait faire seul.
+        </p>
+      </div>
+      <div class="valeur-item reveal delay-2">
+        <div class="valeur-icon" style="animation-delay:.5s"><i class="fa-solid fa-hands-helping"></i></div>
+        <h3 style="font-family:var(--font-head);margin-bottom:.5rem">Entraide</h3>
+        <p style="color:var(--text-muted);font-size:.9rem;line-height:1.7">
+          Chaque membre de la diaspora peut contribuer selon ses moyens et
+          ses compétences au profit de ceux qui en ont besoin.
+        </p>
+      </div>
+      <div class="valeur-item reveal delay-3">
+        <div class="valeur-icon" style="animation-delay:1s"><i class="fa-solid fa-eye"></i></div>
+        <h3 style="font-family:var(--font-head);margin-bottom:.5rem">Transparence</h3>
+        <p style="color:var(--text-muted);font-size:.9rem;line-height:1.7">
+          Chaque euro collecté est tracé et utilisé de manière rigoureuse.
+          Nous rendons compte régulièrement à nos membres.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BUREAU — ORGANIGRAMME -->
+<section class="section team-section">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">GOUVERNANCE</span>
+      <h2>Notre Bureau</h2>
+      <p style="color:var(--text-muted);margin-top:.5rem">
+        Élu lors de l'assemblée constitutive du {{ asso.fondation }}
+      </p>
+    </div>
+
+    {% if membres_ca %}
+    <div class="organigramme">
+
+      <!-- NIVEAU 1 : Président -->
+      <div class="orga-level orga-level-1 reveal">
+        {% for m in membres_ca if 'résident' in m.poste %}
+        <div class="orga-card orga-card-president">
+          <div class="orga-photo">
+            {% if m.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
+            {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- CONNECTEUR -->
+      <div class="orga-connector reveal"></div>
+
+      <!-- NIVEAU 2 : Secrétaire, Trésorier(e) -->
+      <div class="orga-level orga-level-2 reveal">
+        {% for m in membres_ca if 'résident' not in m.poste and m.ordre <= 4 %}
+        <div class="orga-card orga-card-level2">
+          <div class="orga-photo orga-photo-sm">
+            {% if m.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
+            {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- CONNECTEUR -->
+      <div class="orga-connector reveal"></div>
+
+      <!-- NIVEAU 3 : Responsables -->
+      <div class="orga-level orga-level-3 reveal">
+        {% for m in membres_ca if m.ordre > 4 %}
+        <div class="orga-card orga-card-level3">
+          <div class="orga-photo orga-photo-sm">
+            {% if m.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + m.photo) }}" alt="{{ m.nom }}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <span style="display:none">{{ m.nom[0] }}</span>
+            {% else %}
+              <span>{{ m.nom[0] }}</span>
+            {% endif %}
+          </div>
+          <div class="orga-info">
+            <strong>{{ m.nom }}</strong>
+            <span>{{ m.poste }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- CTA REJOINDRE -->
+<section class="section cta-rejoindre">
+  <div class="container" style="text-align:center;max-width:650px;position:relative;z-index:1">
+    <span class="section-tag reveal" style="background:rgba(255,255,255,.2);color:#fff">REJOIGNEZ-NOUS</span>
+    <h2 class="reveal" style="font-family:var(--font-head);margin:1rem 0;color:#fff;font-size:2rem">
+      Vous êtes ressortissant de Koungheul ?
+    </h2>
+    <p class="reveal" style="color:rgba(255,255,255,.85);line-height:1.8;margin-bottom:2rem">
+      Que vous soyez étudiant ou professionnel, votre adhésion renforce notre capacité
+      d'action. Rejoignez les <strong>60 membres fondateurs</strong> et contribuez
+      au développement de Koungheul depuis la France.
+    </p>
+    <div class="reveal" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="{{ url_for('adhesion') }}" class="btn btn-lg"
+         style="background:#fff;color:var(--green);font-weight:700;border-color:#fff">
+        <i class="fa-solid fa-user-plus"></i> Adhérer à l'AKF
+      </a>
+      <a href="{{ url_for('don') }}" class="btn btn-lg"
+         style="border:2px solid rgba(255,255,255,.6);color:#fff;font-weight:700">
+        <i class="fa-solid fa-heart"></i> Faire un don
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right')
+  .forEach(el => observer.observe(el));
+
+// Compteurs animés
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      const target = parseInt(el.dataset.count);
+      if (!target) return;
+      let current = 0;
+      const step = Math.ceil(target / 60);
+      const timer = setInterval(() => {
+        current = Math.min(current + step, target);
+        el.textContent = current;
+        if (current >= target) clearInterval(timer);
+      }, 20);
+      counterObserver.unobserve(el);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(el));
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'Modifier' if membre else 'Nouveau' }} membre{% endblock %}
+{% block page_title %}{{ 'Modifier le membre' if membre else 'Nouveau membre du bureau' }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:1rem">
+  <a href="{{ url_for('admin_bureau') }}" class="btn btn-gray">
+    <i class="fa-solid fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>{{ 'Modifier' if membre else 'Ajouter' }} un membre du bureau</h2>
+  </div>
+  <div style="padding:1.5rem">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+
+        <div class="form-group">
+          <label>Nom complet *</label>
+          <input type="text" name="nom" value="{{ membre.nom if membre else '' }}"
+                 placeholder="Prénom Nom" required />
+        </div>
+
+        <div class="form-group">
+          <label>Poste</label>
+          <input type="text" name="poste" value="{{ membre.poste if membre else '' }}"
+                 placeholder="Ex: Président, Trésorier..." />
+        </div>
+
+        <div class="form-group">
+          <label>Ordre d'affichage</label>
+          <input type="number" name="ordre" value="{{ membre.ordre if membre else 0 }}" min="0" />
+        </div>
+
+      </div>
+
+      <div class="form-group">
+        <label>Photo</label>
+        {% if membre and membre.photo %}
+          <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:1rem">
+            <img src="{{ url_for('static', filename='uploads/' + membre.photo) if membre.photo|length > 20 else url_for('static', filename='img/' + membre.photo) }}"
+                 style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />
+            <p style="font-size:.8rem;color:#6b7280">Photo actuelle — uploader une nouvelle pour la remplacer</p>
+          </div>
+        {% endif %}
+        <input type="file" name="photo" accept="image/*" />
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:.75rem">
+        <input type="checkbox" id="actif" name="actif"
+               {{ 'checked' if not membre or membre.actif }} style="width:18px;height:18px;accent-color:var(--green)" />
+        <label for="actif" style="margin:0;font-weight:600">Membre actif (visible sur le site)</label>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn btn-green">
+          <i class="fa-solid fa-floppy-disk"></i>
+          {{ 'Mettre à jour' if membre else 'Ajouter le membre' }}
+        </button>
+        <a href="{{ url_for('admin_bureau') }}" class="btn btn-gray">Annuler</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

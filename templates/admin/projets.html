@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Projets{% endblock %}
+{% block page_title %}Projets{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem">
+  <a href="{{ url_for('admin_projet_nouveau') }}" class="btn btn-green">
+    <i class="fa-solid fa-plus"></i> Nouveau projet
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Liste des projets ({{ projets|length }})</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Titre</th>
+        <th>Catégorie</th>
+        <th>Statut</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in projets %}
+      <tr>
+        <td>
+          {% if p.image %}
+            <img src="{{ url_for('static', filename='uploads/' + p.image) }}"
+                 style="width:56px;height:40px;object-fit:cover;border-radius:6px" />
+          {% else %}
+            <div style="width:56px;height:40px;background:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:.7rem">
+              <i class="fa-solid fa-image"></i>
+            </div>
+          {% endif %}
+        </td>
+        <td><strong>{{ p.titre }}</strong></td>
+        <td><span class="badge badge-blue">{{ p.categorie }}</span></td>
+        <td>
+          {% if p.publie %}
+            <span class="badge badge-green"><i class="fa-solid fa-eye"></i> Publié</span>
+          {% else %}
+            <span class="badge badge-gray"><i class="fa-solid fa-eye-slash"></i> Brouillon</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#6b7280">{{ p.date_creation.strftime('%d/%m/%Y') }}</td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('projet_detail', slug=p.slug) }}" target="_blank" class="btn btn-gray" title="Voir">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a href="{{ url_for('admin_projet_modifier', id=p.id) }}" class="btn btn-green" title="Modifier">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <a href="{{ url_for('admin_projet_supprimer', id=p.id) }}" class="btn btn-red" title="Supprimer"
+               onclick="return confirm('Supprimer ce projet ?')">
+              <i class="fa-solid fa-trash"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7280">
+        Aucun projet. <a href="{{ url_for('admin_projet_nouveau') }}" style="color:var(--green)">Créer le premier →</a>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

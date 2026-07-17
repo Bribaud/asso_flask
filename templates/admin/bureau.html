@@ -1,0 +1,70 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Bureau{% endblock %}
+{% block page_title %}Bureau de l'association{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem">
+  <a href="{{ url_for('admin_bureau_nouveau') }}" class="btn btn-green">
+    <i class="fa-solid fa-user-plus"></i> Ajouter un membre
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Membres du bureau ({{ membres|length }})</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Photo</th>
+        <th>Nom</th>
+        <th>Poste</th>
+        <th>Ordre</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in membres %}
+      <tr>
+        <td>
+          {% if m.photo %}
+            <img src="{{ url_for('static', filename='uploads/' + m.photo) if m.photo|length > 20 else url_for('static', filename='img/' + m.photo) }}"
+                 style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--border)" />
+          {% else %}
+            <div style="width:44px;height:44px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:700;font-size:1rem">
+              {{ m.nom[0] }}
+            </div>
+          {% endif %}
+        </td>
+        <td><strong>{{ m.nom }}</strong></td>
+        <td>{{ m.poste }}</td>
+        <td style="text-align:center">{{ m.ordre }}</td>
+        <td>
+          {% if m.actif %}
+            <span class="badge badge-green">Actif</span>
+          {% else %}
+            <span class="badge badge-gray">Inactif</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('admin_bureau_modifier', id=m.id) }}" class="btn btn-green">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <a href="{{ url_for('admin_bureau_supprimer', id=m.id) }}" class="btn btn-red"
+               onclick="return confirm('Supprimer ce membre ?')">
+              <i class="fa-solid fa-trash"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7280">Aucun membre.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

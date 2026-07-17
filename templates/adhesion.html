@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block title %}Adhésion – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Rejoignez l'Association des Koungheulois de France. Devenez membre actif et contribuez au développement de Koungheul depuis la France.{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes float  { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s }
+
+.reveal       { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-left  { opacity:0; transform:translateX(-30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-right { opacity:0; transform:translateX(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity:1; transform:none; }
+
+/* Layout */
+.adhesion-layout {
+  display:grid; grid-template-columns:1fr 1.4fr;
+  gap:3rem; align-items:start;
+}
+
+/* Avantages */
+.adhesion-avantage {
+  display:flex; gap:1rem; align-items:flex-start;
+  margin-bottom:1.25rem; padding:1rem; border-radius:var(--radius);
+  transition:background .2s, transform .2s;
+}
+.adhesion-avantage:hover { background:var(--green-light); transform:translateX(4px); }
+.adhesion-avantage-icon {
+  width:44px; height:44px; background:var(--green-light); color:var(--green);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; flex-shrink:0; transition:background .2s, color .2s;
+  animation:float 3s ease-in-out infinite;
+}
+.adhesion-avantage:hover .adhesion-avantage-icon { background:var(--green); color:#fff; }
+.adhesion-avantage strong { display:block; font-size:.95rem; margin-bottom:.2rem; }
+.adhesion-avantage p { color:var(--text-muted); font-size:.85rem; margin:0; }
+
+/* Cotisation badge */
+.cotisation-badge {
+  background:linear-gradient(135deg, var(--green) 0%, #0d5c35 100%);
+  color:#fff; border-radius:var(--radius); padding:1.25rem 1.5rem;
+  margin-bottom:1.5rem; display:flex; gap:1rem; align-items:center;
+}
+.cotisation-badge i { font-size:1.5rem; opacity:.85; }
+
+/* Info box */
+.adhesion-info-box {
+  display:flex; gap:.75rem; background:var(--green-light);
+  border-left:4px solid var(--green); border-radius:0 8px 8px 0;
+  padding:1rem; font-size:.85rem; color:var(--text); margin-top:1.5rem;
+}
+.adhesion-info-box i { flex-shrink:0; margin-top:.15rem; color:var(--green); }
+.adhesion-info-box p { margin:0; line-height:1.6; }
+
+/* Formulaire */
+.form-card { transition:box-shadow .3s; }
+.form-card:hover { box-shadow:0 8px 32px rgba(26,122,74,.1); }
+
+/* Bouton submit */
+.btn-submit-adhesion {
+  width:100%; justify-content:center; margin-top:.5rem;
+  font-size:1rem; padding:1rem;
+  transition:transform .2s, box-shadow .2s;
+}
+.btn-submit-adhesion:hover {
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(26,122,74,.3);
+}
+
+/* Steps indicator */
+.steps-bar {
+  display:flex; gap:.5rem; margin-bottom:1.5rem;
+  padding-bottom:1.5rem; border-bottom:1px solid var(--border);
+}
+.step-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--border); transition:background .3s;
+}
+.step-dot.active { background:var(--green); }
+
+@media (max-width:768px) {
+  .adhesion-layout { grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <div style="width:64px;height:64px;background:rgba(255,255,255,.15);border-radius:50%;
+                display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;
+                font-size:1.6rem;color:#fff;animation:float 3s ease-in-out infinite"
+         class="anim-fade-up">
+      <i class="fa-solid fa-user-plus"></i>
+    </div>
+    <h1 class="anim-fade-up delay-2">Rejoindre l'AKF</h1>
+    <p class="anim-fade-up delay-3">Devenez membre de l'Association des Koungheulois de France</p>
+  </div>
+</div>
+
+<section class="form-section">
+  <div class="container">
+    <div class="adhesion-layout">
+
+      <!-- COLONNE GAUCHE -->
+      <div class="reveal-left">
+
+        <!-- Cotisation -->
+        <div class="cotisation-badge">
+          <i class="fa-solid fa-coins"></i>
+          <div>
+            <strong style="display:block;font-size:1rem;margin-bottom:.3rem">Cotisation mensuelle</strong>
+            <span style="font-size:.85rem;opacity:.9">
+              <i class="fa-solid fa-graduation-cap"></i> Étudiant : <strong>5 € / mois</strong>
+              &nbsp;·&nbsp;
+              <i class="fa-solid fa-briefcase"></i> Actif : <strong>10 € / mois</strong>
+            </span>
+          </div>
+        </div>
+
+        <h2 style="font-family:var(--font-head);margin-bottom:1.25rem">Pourquoi adhérer ?</h2>
+
+        <div class="adhesion-avantage">
+          <div class="adhesion-avantage-icon"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <strong>Rejoindre une communauté</strong>
+            <p>Faites partie du réseau des Koungheulois de France et participez à la vie de l'association.</p>
+          </div>
+        </div>
+
+        <div class="adhesion-avantage" style="animation-delay:.3s">
+          <div class="adhesion-avantage-icon" style="animation-delay:.5s"><i class="fa-solid fa-hand-holding-heart"></i></div>
+          <div>
+            <strong>Soutenir Koungheul</strong>
+            <p>Contribuez concrètement au développement socio-économique de Koungheul au Sénégal.</p>
+          </div>
+        </div>
+
+        <div class="adhesion-avantage" style="animation-delay:.6s">
+          <div class="adhesion-avantage-icon" style="animation-delay:1s"><i class="fa-solid fa-check-to-slot"></i></div>
+          <div>
+            <strong>Voter en assemblée générale</strong>
+            <p>En tant que membre actif, participez aux décisions importantes de l'association.</p>
+          </div>
+        </div>
+
+        <div class="adhesion-avantage" style="animation-delay:.9s">
+          <div class="adhesion-avantage-icon" style="animation-delay:1.5s"><i class="fa-solid fa-calendar-days"></i></div>
+          <div>
+            <strong>Accéder aux événements</strong>
+            <p>Soyez invité en priorité à nos événements, réunions et activités culturelles.</p>
+          </div>
+        </div>
+
+        <div class="adhesion-info-box">
+          <i class="fa-solid fa-circle-info"></i>
+          <p>Conformément à l'<strong>Article 6 des statuts</strong>, toute demande d'adhésion est examinée par le bureau qui statue sur son acceptation.</p>
+        </div>
+
+        <!-- Membres actuels -->
+        <div style="margin-top:1.5rem;padding:1rem;background:var(--bg);border:1px solid var(--border);
+                    border-radius:var(--radius);text-align:center">
+          <div style="font-size:2rem;font-weight:800;color:var(--green);font-family:var(--font-head)">28+</div>
+          <div style="font-size:.85rem;color:var(--text-muted)">membres nous ont déjà rejoints</div>
+        </div>
+
+      </div>
+
+      <!-- COLONNE DROITE : formulaire -->
+      <div class="form-card reveal-right" style="margin:0">
+        <h2 style="font-family:var(--font-head);margin-bottom:.25rem">Formulaire d'adhésion</h2>
+        <p style="color:var(--text-muted);margin-bottom:1.5rem;font-size:.9rem">
+          Tous les champs marqués * sont obligatoires.
+        </p>
+
+        <form method="POST" action="{{ url_for('adhesion') }}">
+
+          <!-- Civilité -->
+          <div class="form-group">
+            <label>Civilité</label>
+            <div style="display:flex;gap:1rem">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+                <input type="radio" name="civilite" value="M." checked style="accent-color:var(--green)"> M.
+              </label>
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+                <input type="radio" name="civilite" value="Mme" style="accent-color:var(--green)"> Mme
+              </label>
+            </div>
+          </div>
+
+          <!-- Nom / Prénom -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label for="prenom">Prénom *</label>
+              <input type="text" id="prenom" name="prenom" placeholder="Prénom" required />
+            </div>
+            <div class="form-group">
+              <label for="nom">Nom *</label>
+              <input type="text" id="nom" name="nom" placeholder="Nom de famille" required />
+            </div>
+          </div>
+
+          <!-- Date de naissance -->
+          <div class="form-group">
+            <label for="date_naissance">Date de naissance</label>
+            <input type="date" id="date_naissance" name="date_naissance" />
+          </div>
+
+          <!-- Statut étudiant -->
+          <div class="form-group">
+            <label>Êtes-vous étudiant(e) ?</label>
+            <div style="display:flex;gap:1.5rem">
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+                <input type="radio" name="etudiant" value="oui" style="accent-color:var(--green)"
+                       onclick="document.getElementById('bloc-etablissement').style.display='block'"> Oui
+              </label>
+              <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-weight:500">
+                <input type="radio" name="etudiant" value="non" checked style="accent-color:var(--green)"
+                       onclick="document.getElementById('bloc-etablissement').style.display='none'"> Non
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="bloc-etablissement" style="display:none">
+            <label for="etablissement">Établissement scolaire / universitaire</label>
+            <input type="text" id="etablissement" name="etablissement"
+                   placeholder="Ex: Université de Limoges, Lycée..." />
+          </div>
+
+          <!-- Profession -->
+          <div class="form-group">
+            <label for="profession">Profession *</label>
+            <select id="profession" name="profession" required onchange="toggleAutreProfession(this)">
+              <option value="">-- Sélectionner --</option>
+              <optgroup label="Secteur public / parapublic">
+                <option value="fonctionnaire">Fonctionnaire</option>
+                <option value="agent_contractuel">Agent contractuel</option>
+                <option value="militaire_police">Militaire / Police</option>
+              </optgroup>
+              <optgroup label="Secteur privé">
+                <option value="salarie_prive">Salarié(e) secteur privé</option>
+                <option value="independant">Travailleur indépendant / Freelance</option>
+                <option value="chef_entreprise">Chef d'entreprise / Entrepreneur</option>
+                <option value="commercant">Commerçant(e)</option>
+                <option value="artisan">Artisan</option>
+                <option value="agriculteur">Agriculteur / Éleveur</option>
+              </optgroup>
+              <optgroup label="Santé / Social">
+                <option value="medecin">Médecin / Infirmier(e)</option>
+                <option value="travailleur_social">Travailleur social</option>
+              </optgroup>
+              <optgroup label="Éducation">
+                <option value="enseignant">Enseignant(e)</option>
+                <option value="etudiant">Étudiant(e)</option>
+              </optgroup>
+              <optgroup label="Autre">
+                <option value="retraite">Retraité(e)</option>
+                <option value="sans_emploi">Sans emploi</option>
+                <option value="autre">Autre</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="form-group" id="bloc-autre-profession" style="display:none">
+            <label for="profession_autre">Précisez votre profession</label>
+            <input type="text" id="profession_autre" name="profession_autre"
+                   placeholder="Votre profession..." />
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="email">Adresse e-mail *</label>
+            <input type="email" id="email" name="email" placeholder="votre@email.com" required />
+          </div>
+
+          <!-- Téléphone -->
+          <div class="form-group">
+            <label for="telephone">Téléphone *</label>
+            <input type="tel" id="telephone" name="telephone" placeholder="+33 6 00 00 00 00" required />
+          </div>
+
+          <!-- Adresse -->
+          <div class="form-group">
+            <label for="adresse">Adresse postale</label>
+            <input type="text" id="adresse" name="adresse" placeholder="Numéro et rue" />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:1rem">
+            <div class="form-group">
+              <label for="code_postal">Code postal</label>
+              <input type="text" id="code_postal" name="code_postal" placeholder="87000" />
+            </div>
+            <div class="form-group">
+              <label for="ville">Ville *</label>
+              <input type="text" id="ville" name="ville" placeholder="Limoges, Paris…" required />
+            </div>
+          </div>
+
+          <!-- Pays -->
+          <div class="form-group">
+            <label for="pays">Pays de résidence</label>
+            <select id="pays" name="pays">
+              <option value="France" selected>France</option>
+              <option value="Sénégal">Sénégal</option>
+              <option value="Belgique">Belgique</option>
+              <option value="Suisse">Suisse</option>
+              <option value="Canada">Canada</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+
+          <!-- Type adhésion -->
+          <div class="form-group">
+            <label for="type_adhesion">Type d'adhésion *</label>
+            <select id="type_adhesion" name="type_adhesion" required>
+              <option value="membre_actif">Membre actif</option>
+              <option value="membre_bienfaiteur">Membre bienfaiteur</option>
+              <option value="membre_honneur">Membre d'honneur</option>
+            </select>
+          </div>
+
+          <!-- Motivation -->
+          <div class="form-group">
+            <label for="motivation">Motivation / Message (facultatif)</label>
+            <textarea id="motivation" name="motivation" rows="3"
+                      placeholder="Pourquoi souhaitez-vous rejoindre l'AKF ?"></textarea>
+          </div>
+
+          <!-- Engagement -->
+          <div class="form-group" style="display:flex;align-items:flex-start;gap:.75rem;
+               background:var(--green-light);padding:1rem;border-radius:8px">
+            <input type="checkbox" id="engagement" name="engagement" required
+                   style="width:18px;height:18px;accent-color:var(--green);margin-top:2px;flex-shrink:0" />
+            <label for="engagement" style="margin:0;font-size:.88rem;color:var(--text);font-weight:400;cursor:pointer">
+              Je certifie l'exactitude des informations fournies et adhère aux
+              <strong>statuts de l'Association des Koungheulois de France</strong>
+              ainsi qu'à ses valeurs de solidarité, entraide et développement. *
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-submit-adhesion">
+            <i class="fa-solid fa-paper-plane"></i>
+            Soumettre ma demande d'adhésion
+          </button>
+
+          <p style="text-align:center;margin-top:.75rem;font-size:.78rem;color:var(--text-muted)">
+            <i class="fa-solid fa-shield-halved" style="color:var(--green)"></i>
+            Vos données sont traitées conformément au RGPD et ne sont jamais transmises à des tiers.
+          </p>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+
+function toggleAutreProfession(select) {
+  document.getElementById('bloc-autre-profession').style.display =
+    select.value === 'autre' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

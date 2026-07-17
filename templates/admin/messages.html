@@ -1,0 +1,52 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Messages{% endblock %}
+{% block page_title %}Messages reçus{% endblock %}
+
+{% block content %}
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Messages ({{ messages|length }})</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Expéditeur</th>
+        <th>Email</th>
+        <th>Sujet</th>
+        <th>Lu</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in messages %}
+      <tr style="{{ 'font-weight:600' if not m.lu else '' }}">
+        <td>{{ m.id }}</td>
+        <td>{{ m.nom }}</td>
+        <td><a href="mailto:{{ m.email }}" style="color:var(--green)">{{ m.email }}</a></td>
+        <td>{{ m.sujet or '–' }}</td>
+        <td>
+          {% if m.lu %}
+            <span class="badge badge-green"><i class="fa-solid fa-check"></i> Lu</span>
+          {% else %}
+            <span class="badge badge-orange"><i class="fa-solid fa-circle"></i> Non lu</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#6b7280">{{ m.date_creation.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('admin_message_detail', id=m.id) }}" class="btn btn-green"><i class="fa-solid fa-eye"></i> Lire</a>
+            <a href="{{ url_for('admin_message_supprimer', id=m.id) }}" class="btn btn-red" onclick="return confirm('Supprimer ce message ?')"><i class="fa-solid fa-trash"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:2rem;color:#6b7280">Aucun message reçu.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

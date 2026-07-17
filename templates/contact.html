@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Contact – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Contactez l'Association des Koungheulois de France. Posez vos questions, proposez un partenariat ou rejoignez notre communauté.{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes float  { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
+@keyframes pulse  { 0%,100% { box-shadow:0 0 0 0 rgba(26,122,74,.4) } 70% { box-shadow:0 0 0 10px rgba(26,122,74,0) } }
+
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s }
+
+.reveal       { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-left  { opacity:0; transform:translateX(-30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal-right { opacity:0; transform:translateX(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity:1; transform:none; }
+
+/* Hero contact */
+.hero-contact {
+  background:linear-gradient(135deg, #1a7a4a 0%, #0d5c35 100%);
+  padding:5rem 0 3rem; text-align:center; position:relative; overflow:hidden;
+}
+.hero-contact::before {
+  content:''; position:absolute; top:-30%; right:-10%;
+  width:450px; height:450px; border-radius:50%;
+  background:rgba(255,255,255,.04);
+}
+.hero-contact-icon {
+  width:76px; height:76px; background:rgba(255,255,255,.15);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:1.8rem; color:#fff; margin:0 auto 1.25rem;
+  animation:float 3s ease-in-out infinite;
+}
+
+/* Infos contact */
+.contact-info-item {
+  display:flex; gap:1rem; align-items:flex-start;
+  padding:1rem; border-radius:var(--radius);
+  transition:background .2s, transform .2s;
+  margin-bottom:.5rem;
+}
+.contact-info-item:hover { background:var(--green-light); transform:translateX(4px); }
+.contact-icon-box {
+  width:46px; height:46px; background:var(--green-light); color:var(--green);
+  border-radius:12px; display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0; transition:background .2s, color .2s;
+}
+.contact-info-item:hover .contact-icon-box { background:var(--green); color:#fff; }
+.contact-info-item strong { display:block; font-size:.88rem; font-weight:700; margin-bottom:.2rem; }
+.contact-info-item p { color:var(--text-muted); font-size:.85rem; margin:0; line-height:1.6; }
+.contact-info-item a { color:var(--green); text-decoration:none; }
+.contact-info-item a:hover { text-decoration:underline; }
+
+/* Réseaux sociaux */
+.social-contact-links { display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.3rem; }
+.social-contact-links a {
+  display:flex; align-items:center; gap:.35rem;
+  background:var(--bg); border:1px solid var(--border);
+  padding:.3rem .75rem; border-radius:99px; font-size:.78rem;
+  font-weight:600; color:var(--text); text-decoration:none;
+  transition:.15s;
+}
+.social-contact-links a:hover { border-color:var(--green); color:var(--green); background:var(--green-light); }
+
+/* Formulaire */
+.contact-form-card {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius); padding:2rem;
+  box-shadow:0 4px 24px rgba(0,0,0,.06);
+  transition:box-shadow .3s;
+}
+.contact-form-card:hover { box-shadow:0 8px 32px rgba(26,122,74,.1); }
+
+/* Input focus animation */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(26,122,74,.1);
+  outline:none;
+}
+
+/* Bouton envoi */
+.btn-contact {
+  width:100%; justify-content:center; gap:.6rem;
+  font-size:1rem; padding:1rem;
+  animation:pulse 2.5s infinite;
+  transition:transform .2s, opacity .2s;
+}
+.btn-contact:hover { transform:translateY(-2px); opacity:.92; animation:none; }
+
+/* Carte "Réponse rapide" */
+.reponse-card {
+  background:var(--green-light); border:1px solid var(--green);
+  border-radius:var(--radius); padding:1.25rem;
+  margin-bottom:1.5rem; display:flex; gap:.85rem; align-items:center;
+}
+.reponse-card i { font-size:1.5rem; color:var(--green); flex-shrink:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="hero-contact">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="hero-contact-icon anim-fade-up">
+      <i class="fa-solid fa-envelope"></i>
+    </div>
+    <h1 class="anim-fade-up delay-2" style="color:#fff">Nous contacter</h1>
+    <p class="anim-fade-up delay-3" style="color:rgba(255,255,255,.85);max-width:480px;margin:0 auto">
+      Une question, une idée, un projet ? L'équipe de l'AKF vous répond dans les meilleurs délais.
+    </p>
+  </div>
+</div>
+
+<section class="form-section">
+  <div class="container two-col-layout">
+
+    <!-- COLONNE GAUCHE : infos -->
+    <div class="reveal-left">
+
+      <!-- Réponse rapide -->
+      <div class="reponse-card">
+        <i class="fa-solid fa-clock"></i>
+        <div>
+          <strong style="display:block;margin-bottom:.2rem">Réponse rapide</strong>
+          <span style="font-size:.82rem;color:var(--text-muted)">
+            Nous répondons généralement sous 24 à 48h ouvrées.
+          </span>
+        </div>
+      </div>
+
+      <h2 style="font-family:var(--font-head);margin-bottom:1.25rem">Coordonnées</h2>
+
+      <div class="contact-info-list">
+
+        <div class="contact-info-item">
+          <div class="contact-icon-box"><i class="fa-solid fa-location-dot"></i></div>
+          <div>
+            <strong>Siège social</strong>
+            <p>{{ asso.siege }}</p>
+          </div>
+        </div>
+
+        {% if asso.email %}
+        <div class="contact-info-item">
+          <div class="contact-icon-box"><i class="fa-solid fa-envelope"></i></div>
+          <div>
+            <strong>Email</strong>
+            <p><a href="mailto:{{ asso.email }}">{{ asso.email }}</a></p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if asso.telephone %}
+        <div class="contact-info-item">
+          <div class="contact-icon-box"><i class="fa-solid fa-phone"></i></div>
+          <div>
+            <strong>Téléphone</strong>
+            <p>{{ asso.telephone }}</p>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="contact-info-item">
+          <div class="contact-icon-box"><i class="fa-solid fa-landmark"></i></div>
+          <div>
+            <strong>Identité légale</strong>
+            <p>RNA {{ asso.rna }}<br>SIREN {{ asso.siren }}</p>
+          </div>
+        </div>
+
+        <div class="contact-info-item">
+          <div class="contact-icon-box"><i class="fa-solid fa-share-nodes"></i></div>
+          <div>
+            <strong>Réseaux sociaux</strong>
+            <div class="social-contact-links">
+              <a href="{{ asso.facebook }}" target="_blank">
+                <i class="fa-brands fa-facebook"></i> Facebook
+              </a>
+              <a href="{{ asso.instagram }}" target="_blank">
+                <i class="fa-brands fa-instagram"></i> Instagram
+              </a>
+              {% if asso.tiktok %}
+              <a href="{{ asso.tiktok }}" target="_blank">
+                <i class="fa-brands fa-tiktok"></i> TikTok
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CTA adhésion -->
+      <div style="margin-top:2rem;padding:1.25rem;background:var(--bg);
+                  border:1px solid var(--border);border-radius:var(--radius);text-align:center">
+        <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1rem">
+          Vous souhaitez rejoindre l'AKF ?
+        </p>
+        <a href="{{ url_for('adhesion') }}" class="btn btn-primary" style="font-size:.88rem">
+          <i class="fa-solid fa-user-plus"></i> Adhérer à l'AKF
+        </a>
+      </div>
+
+    </div>
+
+    <!-- COLONNE DROITE : formulaire -->
+    <div class="contact-form-card reveal-right">
+      <h2 style="font-family:var(--font-head);margin-bottom:.5rem">Envoyer un message</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.5rem">
+        Remplissez le formulaire et nous vous répondrons rapidement.
+      </p>
+
+      <form method="POST" action="{{ url_for('contact') }}">
+
+        <div class="form-group">
+          <label for="nom">Nom complet *</label>
+          <input type="text" id="nom" name="nom" placeholder="Votre nom" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Adresse e-mail *</label>
+          <input type="email" id="email" name="email" placeholder="votre@email.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sujet">Sujet</label>
+          <select id="sujet" name="sujet">
+            <option value="">-- Choisir un sujet --</option>
+            <option>Adhésion</option>
+            <option>Don / Soutien</option>
+            <option>Projet ou partenariat</option>
+            <option>Information générale</option>
+            <option>Autre</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message *</label>
+          <textarea id="message" name="message" rows="5"
+                    placeholder="Votre message..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-contact">
+          <i class="fa-solid fa-paper-plane"></i> Envoyer le message
+        </button>
+
+        <p style="text-align:center;margin-top:.85rem;font-size:.75rem;color:var(--text-muted)">
+          <i class="fa-solid fa-shield-halved" style="color:var(--green)"></i>
+          Vos données sont traitées conformément au RGPD et ne sont jamais transmises à des tiers.
+        </p>
+
+      </form>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

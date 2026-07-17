@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+{% block title %}Accueil – {{ asso.nom }}{% endblock %}
+{% block meta_description %}{{ asso.description }}{% endblock %}
+{% block og_title %}{{ asso.nom }} – Solidarité, Entraide, Développement{% endblock %}
+{% block og_url %}https://asso-flask.onrender.com{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── ANIMATIONS ─────────────────────────────── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn   { from { opacity:0 } to { opacity:1 } }
+@keyframes slideIn  { from { opacity:0; transform:translateX(-30px) } to { opacity:1; transform:translateX(0) } }
+@keyframes scaleIn  { from { opacity:0; transform:scale(.92) } to { opacity:1; transform:scale(1) } }
+@keyframes float    { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-10px) } }
+@keyframes pulse    { 0%,100% { transform:scale(1) } 50% { transform:scale(1.05) } }
+@keyframes countUp  { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+
+.anim-fade-up   { opacity:0; animation:fadeUp .7s ease forwards; }
+.anim-fade-in   { opacity:0; animation:fadeIn .8s ease forwards; }
+.anim-slide-in  { opacity:0; animation:slideIn .7s ease forwards; }
+.anim-scale-in  { opacity:0; animation:scaleIn .6s ease forwards; }
+
+.delay-1 { animation-delay:.1s }
+.delay-2 { animation-delay:.2s }
+.delay-3 { animation-delay:.3s }
+.delay-4 { animation-delay:.4s }
+.delay-5 { animation-delay:.5s }
+.delay-6 { animation-delay:.6s }
+.delay-7 { animation-delay:.7s }
+.delay-8 { animation-delay:.8s }
+
+/* Scroll reveal */
+.reveal { opacity:0; transform:translateY(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity:1; transform:translateY(0); }
+.reveal-left { opacity:0; transform:translateX(-40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal-left.visible { opacity:1; transform:translateX(0); }
+.reveal-right { opacity:0; transform:translateX(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal-right.visible { opacity:1; transform:translateX(0); }
+
+/* ── HERO ───────────────────────────────────── */
+.hero-badge {
+  display:inline-flex; align-items:center; gap:.5rem;
+  background:rgba(255,255,255,.15); backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.3); color:#fff;
+  padding:.4rem 1.1rem; border-radius:99px; font-size:.8rem;
+  font-weight:700; letter-spacing:.08em; margin-bottom:1.5rem;
+}
+.hero-badge::before {
+  content:''; width:8px; height:8px; background:#4ade80;
+  border-radius:50%; animation:pulse 1.5s infinite;
+}
+
+.hero-title { font-size:clamp(2.2rem,5vw,3.8rem) !important; }
+
+.hero-cta { display:flex; gap:1rem; flex-wrap:wrap; margin:2rem 0 1.5rem; }
+
+.hero-badges-row {
+  display:flex; gap:.6rem; flex-wrap:wrap;
+}
+.badge-info {
+  background:rgba(255,255,255,.15); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.25); color:rgba(255,255,255,.9);
+  padding:.3rem .85rem; border-radius:99px; font-size:.75rem; font-weight:600;
+}
+
+/* ── STATS ──────────────────────────────────── */
+.stats-bar { background:var(--green); padding:1.5rem 0; }
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
+.stat-item {
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  padding:1rem; border-right:1px solid rgba(255,255,255,.2); color:#fff;
+}
+.stat-item:last-child { border-right:none; }
+.stat-value {
+  font-size:2rem; font-weight:800; font-family:var(--font-head);
+  line-height:1;
+}
+.stat-label { font-size:.78rem; opacity:.85; margin-top:.3rem; text-transform:uppercase; letter-spacing:.05em; }
+
+/* ── CARTES APROPOS ─────────────────────────── */
+.apropos-card {
+  background:var(--bg); border:1px solid var(--border); border-radius:var(--radius);
+  padding:2rem 1.5rem; text-align:center; transition:transform .25s, box-shadow .25s;
+  position:relative; overflow:hidden;
+}
+.apropos-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--green); transform:scaleX(0); transition:transform .3s;
+  transform-origin:left;
+}
+.apropos-card:hover { transform:translateY(-6px); box-shadow:var(--shadow); }
+.apropos-card:hover::before { transform:scaleX(1); }
+.apropos-icon {
+  width:56px; height:56px; background:var(--green-light); border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem; color:var(--green); margin:0 auto 1.25rem;
+  transition:background .3s, color .3s;
+}
+.apropos-card:hover .apropos-icon { background:var(--green); color:#fff; }
+
+/* ── CARDS ──────────────────────────────────── */
+.card {
+  transition:transform .25s, box-shadow .25s;
+}
+.card:hover { transform:translateY(-6px); box-shadow:var(--shadow); }
+
+/* ── CTA ────────────────────────────────────── */
+.cta-section {
+  background:linear-gradient(135deg, var(--green) 0%, #0d5c35 100%);
+  color:#fff; position:relative; overflow:hidden;
+}
+.cta-section::before {
+  content:''; position:absolute; top:-50%; right:-10%;
+  width:500px; height:500px; border-radius:50%;
+  background:rgba(255,255,255,.05);
+}
+.cta-section::after {
+  content:''; position:absolute; bottom:-30%; left:-5%;
+  width:300px; height:300px; border-radius:50%;
+  background:rgba(255,255,255,.04);
+}
+.cta-icon {
+  width:72px; height:72px; background:rgba(255,255,255,.15);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:1.8rem; color:#fff; margin:0 auto 1.5rem;
+  animation:float 3s ease-in-out infinite;
+}
+
+/* ── TÉMOIGNAGE/VALEURS ─────────────────────── */
+.valeur-card {
+  display:flex; gap:1.25rem; align-items:flex-start;
+  padding:1.25rem; border-radius:var(--radius);
+  background:var(--bg); border:1px solid var(--border);
+  transition:transform .2s, box-shadow .2s;
+}
+.valeur-card:hover { transform:translateY(-4px); box-shadow:var(--shadow); }
+.valeur-num {
+  width:40px; height:40px; background:var(--green); color:#fff;
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:1rem; flex-shrink:0;
+}
+
+/* ── TIMELINE ───────────────────────────────── */
+.timeline { position:relative; padding-left:2rem; }
+.timeline::before {
+  content:''; position:absolute; left:.6rem; top:0; bottom:0;
+  width:2px; background:var(--green-light);
+}
+.timeline-item { position:relative; margin-bottom:1.5rem; }
+.timeline-item::before {
+  content:''; position:absolute; left:-1.5rem; top:.35rem;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--green); border:2px solid #fff;
+  box-shadow:0 0 0 3px var(--green-light);
+}
+.timeline-item:last-child { margin-bottom:0; }
+
+@media (max-width:768px) {
+  .stats-grid { grid-template-columns:repeat(2,1fr); }
+  .stat-item { border-right:none; border-bottom:1px solid rgba(255,255,255,.2); }
+  .stat-item:nth-child(odd) { border-right:1px solid rgba(255,255,255,.2); }
+  .stat-item:last-child, .stat-item:nth-last-child(2) { border-bottom:none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══ HERO ══════════════════════════════════════════════════════════════ -->
+<section class="hero" id="accueil">
+  <div class="hero-bg"></div>
+  <div class="container hero-inner">
+
+    <div class="hero-text">
+      <span class="hero-badge anim-fade-in">ASSOCIATION SOLIDAIRE</span>
+      <h1 class="hero-title anim-fade-up delay-2">
+        Association des<br>
+        <span class="accent">Koungheulois</span><br>
+        de France
+      </h1>
+      <p class="hero-sub anim-fade-up delay-3">{{ asso.slogan }}</p>
+      <p class="hero-desc anim-fade-up delay-4">{{ asso.description }}</p>
+      <div class="hero-cta anim-fade-up delay-5">
+        <a href="{{ url_for('don') }}" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-heart"></i> Faire un don
+        </a>
+        <a href="{{ url_for('adhesion') }}" class="btn btn-outline btn-lg">
+          <i class="fa-solid fa-user-plus"></i> Adhérer
+        </a>
+      </div>
+      <div class="hero-badges-row anim-fade-up delay-6">
+        <span class="badge-info">RNA {{ asso.rna }}</span>
+        <span class="badge-info">Déclarée {{ asso.declaration }}</span>
+        <span class="badge-info">ESS ✓</span>
+      </div>
+    </div>
+
+    <div class="hero-slider anim-scale-in delay-3">
+      <div class="slides">
+        <img src="{{ url_for('static', filename='img/koungheul.jpg') }}" class="slide active" alt="Koungheul">
+        <img src="{{ url_for('static', filename='img/reunion.jpg') }}" class="slide" alt="Réunion AKF">
+        <img src="{{ url_for('static', filename='img/projet.jpg') }}" class="slide" alt="Projet AKF">
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ STATS ══════════════════════════════════════════════════════════════ -->
+<section class="stats-bar">
+  <div class="container stats-grid">
+    {% for s in stats %}
+    <div class="stat-item reveal">
+      <span class="stat-value" data-target="{{ s.value }}">{{ s.value }}</span>
+      <span class="stat-label">{{ s.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ══ À PROPOS ═══════════════════════════════════════════════════════════ -->
+<section class="section" id="a-propos">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">QUI SOMMES-NOUS</span>
+      <h2>À propos de l'AKF</h2>
+      <p style="color:var(--text-muted);max-width:580px;margin:.75rem auto 0">
+        Une association de la diaspora Koungheuloise au service du développement de Koungheul.
+      </p>
+    </div>
+    <div class="apropos-grid">
+      <div class="apropos-card reveal delay-1">
+        <div class="apropos-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <h3>Notre Mission</h3>
+        <p>Contribuer au développement socio-économique de Koungheul à travers des actions concrètes dans les domaines social, éducatif, sanitaire et économique.</p>
+      </div>
+      <div class="apropos-card reveal delay-2">
+        <div class="apropos-icon"><i class="fa-solid fa-handshake"></i></div>
+        <h3>Notre Engagement</h3>
+        <p>Renforcer les liens entre les ressortissants de Koungheul établis en France et leur territoire d'origine, en favorisant solidarité et cohésion.</p>
+      </div>
+      <div class="apropos-card reveal delay-3">
+        <div class="apropos-icon"><i class="fa-solid fa-gem"></i></div>
+        <h3>Nos Valeurs</h3>
+        <p>Solidarité, entraide, transparence et respect guident chacune de nos actions au service des communautés de Koungheul.</p>
+      </div>
+    </div>
+    <div class="text-center mt-2 reveal">
+      <a href="{{ url_for('presentation') }}" class="btn btn-outline">En savoir plus sur l'association →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ POURQUOI REJOINDRE ══════════════════════════════════════════════════ -->
+<section class="section section-light">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center">
+
+      <div class="reveal-left">
+        <span class="section-tag">NOTRE IMPACT</span>
+        <h2 style="font-family:var(--font-head);margin:1rem 0">
+          Pourquoi rejoindre l'AKF ?
+        </h2>
+        <p style="color:var(--text-muted);line-height:1.8;margin-bottom:1.5rem">
+          L'AKF est bien plus qu'une association — c'est un réseau de solidarité,
+          un pont entre la France et Koungheul, un espace de partage et d'action concrète.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:.85rem">
+          <div class="valeur-card reveal delay-1">
+            <div class="valeur-num">1</div>
+            <div>
+              <strong style="display:block;margin-bottom:.2rem">Agir concrètement</strong>
+              <span style="font-size:.85rem;color:var(--text-muted)">Chaque cotisation finance des projets réels à Koungheul.</span>
+            </div>
+          </div>
+          <div class="valeur-card reveal delay-2">
+            <div class="valeur-num">2</div>
+            <div>
+              <strong style="display:block;margin-bottom:.2rem">Rester connecté</strong>
+              <span style="font-size:.85rem;color:var(--text-muted)">Gardez le lien avec votre ville d'origine et vos compatriotes en France.</span>
+            </div>
+          </div>
+          <div class="valeur-card reveal delay-3">
+            <div class="valeur-num">3</div>
+            <div>
+              <strong style="display:block;margin-bottom:.2rem">Partager vos compétences</strong>
+              <span style="font-size:.85rem;color:var(--text-muted)">Médecins, ingénieurs, enseignants — vos expertises sont précieuses.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="reveal-right">
+        <span class="section-tag">NOTRE PARCOURS</span>
+        <h3 style="font-family:var(--font-head);margin:1rem 0 1.5rem">Les grandes étapes</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <strong style="color:var(--green);display:block;font-size:.8rem;margin-bottom:.2rem">11 MARS 2026</strong>
+            <p style="font-weight:600;margin-bottom:.2rem">Assemblée constitutive</p>
+            <p style="font-size:.85rem;color:var(--text-muted)">28 membres fondateurs réunis à Limoges créent officiellement l'AKF.</p>
+          </div>
+          <div class="timeline-item">
+            <strong style="color:var(--green);display:block;font-size:.8rem;margin-bottom:.2rem">24 AVRIL 2026</strong>
+            <p style="font-weight:600;margin-bottom:.2rem">Déclaration en préfecture</p>
+            <p style="font-size:.85rem;color:var(--text-muted)">L'association est officiellement déclarée à la préfecture de la Haute-Vienne.</p>
+          </div>
+          <div class="timeline-item">
+            <strong style="color:var(--green);display:block;font-size:.8rem;margin-bottom:.2rem">28 AVRIL 2026</strong>
+            <p style="font-weight:600;margin-bottom:.2rem">Publication au Journal Officiel</p>
+            <p style="font-size:.85rem;color:var(--text-muted)">Annonce n°2578 au JOAFE — reconnaissance ESS obtenue.</p>
+          </div>
+          <div class="timeline-item">
+            <strong style="color:var(--green);display:block;font-size:.8rem;margin-bottom:.2rem">2026 — EN COURS</strong>
+            <p style="font-weight:600;margin-bottom:.2rem">Lancement des premiers projets</p>
+            <p style="font-size:.85rem;color:var(--text-muted)">Éducation, santé, développement économique — nos actions démarrent.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROJETS ════════════════════════════════════════════════════════════ -->
+<section class="section" id="projets">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">NOS ACTIONS</span>
+      <h2>Projets & Initiatives</h2>
+    </div>
+    <div class="cards-grid">
+      {% for p in projets %}
+      <article class="card reveal delay-{{ loop.index }}">
+        {% if p.image %}
+          <img src="{{ url_for('static', filename='uploads/' + p.image) }}" alt="{{ p.titre }}" class="card-img" />
+        {% else %}
+          <div class="card-img-placeholder"><i class="fa-solid fa-earth-africa"></i></div>
+        {% endif %}
+        <div class="card-body">
+          <span class="card-tag">{{ p.categorie }}</span>
+          <h3>{{ p.titre }}</h3>
+          <p>{{ p.description }}</p>
+          <a href="{{ url_for('projet_detail', slug=p.slug) }}" class="card-link">En savoir plus →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-2 reveal">
+      <a href="{{ url_for('projets') }}" class="btn btn-outline">Voir tous nos projets →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ACTUALITÉS ═════════════════════════════════════════════════════════ -->
+<section class="section section-light" id="actualites">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">ACTUALITÉS</span>
+      <h2>Dernières nouvelles</h2>
+    </div>
+    <div class="cards-grid">
+      {% for a in actualites %}
+      <article class="card reveal delay-{{ loop.index }}">
+        {% if a.image %}
+          <img src="{{ url_for('static', filename='uploads/' + a.image) }}" alt="{{ a.titre }}" class="card-img" />
+        {% else %}
+          <div class="card-img-placeholder"><i class="fa-solid fa-newspaper"></i></div>
+        {% endif %}
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="card-tag">{{ a.categorie }}</span>
+            <span class="card-date">{{ a.date_creation.strftime('%d %b %Y') }}</span>
+          </div>
+          <h3><a href="{{ url_for('actualite_detail', slug=a.slug) }}">{{ a.titre }}</a></h3>
+          <p>{{ a.extrait }}</p>
+          <a href="{{ url_for('actualite_detail', slug=a.slug) }}" class="card-link">Lire →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ════════════════════════════════════════════════════════════════ -->
+<section class="section cta-section" id="don">
+  <div class="container text-center" style="position:relative;z-index:1">
+    <div class="cta-icon reveal">
+      <i class="fa-solid fa-heart"></i>
+    </div>
+    <h2 class="reveal" style="color:#fff;font-family:var(--font-head);font-size:2.2rem;margin-bottom:1rem">
+      Soutenez nos projets, changez des vies
+    </h2>
+    <p class="reveal" style="color:rgba(255,255,255,.85);max-width:580px;margin:0 auto;line-height:1.8">
+      Chaque contribution, même modeste, permet de soutenir nos actions de solidarité,
+      d'entraide et de développement au service des ressortissants de Koungheul en France
+      et des populations de Koungheul au Sénégal.
+    </p>
+    <div class="reveal" style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem">
+      <a href="{{ url_for('don') }}" class="btn btn-lg"
+         style="background:#fff;color:var(--green);border-color:#fff;font-weight:700">
+        <i class="fa-solid fa-heart"></i> Faire un don
+      </a>
+      <a href="{{ url_for('adhesion') }}" class="btn btn-lg"
+         style="border:2px solid rgba(255,255,255,.6);color:#fff;font-weight:700">
+        <i class="fa-solid fa-user-plus"></i> Adhérer à l'AKF
+      </a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Scroll Reveal ──────────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => {
+  observer.observe(el);
+});
+
+// ── Compteur animé ──────────────────────────────────────────────────────────
+function animateCounter(el, target) {
+  const isNum = /^\d+$/.test(target);
+  if (!isNum) return;
+  let current = 0;
+  const duration = 1500;
+  const step = Math.ceil(parseInt(target) / (duration / 16));
+  const timer = setInterval(() => {
+    current = Math.min(current + step, parseInt(target));
+    el.textContent = current;
+    if (current >= parseInt(target)) clearInterval(timer);
+  }, 16);
+}
+
+const statObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const el = entry.target.querySelector('.stat-value');
+      if (el) animateCounter(el, el.textContent);
+      statObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.stat-item').forEach(el => statObserver.observe(el));
+</script>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Cotisations – {{ mois_label }} {{ annee }}{% endblock %}
+{% block page_title %}Cotisations – {{ mois_label }} {{ annee }}{% endblock %}
+
+{% block content %}
+
+<!-- NAVIGATION MOIS -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+  <div style="display:flex;align-items:center;gap:.75rem">
+    <a href="{{ url_for('admin_cotisations', mois=mois_prec, annee=annee_prec) }}" class="btn btn-gray">
+      <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    <h2 style="font-size:1.2rem;font-weight:700;margin:0">{{ mois_label }} {{ annee }}</h2>
+    <a href="{{ url_for('admin_cotisations', mois=mois_suiv, annee=annee_suiv) }}" class="btn btn-gray">
+      <i class="fa-solid fa-chevron-right"></i>
+    </a>
+  </div>
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+    <a href="{{ url_for('admin_cotisations_marquer_retard', mois=mois, annee=annee) }}"
+       class="btn btn-gray" onclick="return confirm('Marquer en retard toutes les cotisations non payées ?')">
+      <i class="fa-solid fa-triangle-exclamation"></i> Marquer retards
+    </a>
+    <a href="{{ url_for('admin_cotisations_relancer', mois=mois, annee=annee) }}"
+       class="btn btn-green" onclick="return confirm('Envoyer un email de rappel à tous les membres en retard/attente ?')">
+      <i class="fa-solid fa-paper-plane"></i> Relancer par email
+    </a>
+  </div>
+</div>
+
+<!-- STATS MOIS -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-card-icon blue"><i class="fa-solid fa-users"></i></div>
+    <div><h3>{{ total_membres }}</h3><p>Membres</p></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon green"><i class="fa-solid fa-check"></i></div>
+    <div><h3>{{ total_payes }}</h3><p>Payés</p></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon" style="background:#fff7ed;color:#ea580c"><i class="fa-solid fa-clock"></i></div>
+    <div><h3>{{ total_attente }}</h3><p>En attente</p></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <div><h3>{{ total_retard }}</h3><p>En retard</p></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card-icon green"><i class="fa-solid fa-euro-sign"></i></div>
+    <div>
+      <h3>{{ "%.0f"|format(montant_percu) }} €</h3>
+      <p>/ {{ "%.0f"|format(montant_attendu) }} € attendus</p>
+    </div>
+  </div>
+</div>
+
+<!-- BARRE DE PROGRESSION -->
+{% if montant_attendu > 0 %}
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
+  <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.5rem">
+    <span style="font-weight:600">Taux de recouvrement</span>
+    <span style="color:var(--green);font-weight:700">
+      {{ "%.0f"|format((montant_percu / montant_attendu) * 100) }}%
+    </span>
+  </div>
+  <div style="background:var(--border);border-radius:99px;height:10px;overflow:hidden">
+    <div style="background:var(--green);height:100%;border-radius:99px;width:{{ ((montant_percu / montant_attendu) * 100)|round }}%;transition:width .5s"></div>
+  </div>
+  <p style="font-size:.78rem;color:var(--text-muted);margin-top:.4rem">
+    {{ "%.2f"|format(montant_percu) }} € perçus sur {{ "%.2f"|format(montant_attendu) }} € attendus
+  </p>
+</div>
+{% endif %}
+
+<!-- TABLEAU -->
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Détail des cotisations</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Membre</th>
+        <th>Type</th>
+        <th>Montant</th>
+        <th>Statut</th>
+        <th>Payé le</th>
+        <th>Mode</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cotisations %}
+      <tr style="{{ 'background:#fef2f2' if c.statut == 'retard' else '' }}">
+        <td>
+          <strong>{{ c.adhesion.prenom }} {{ c.adhesion.nom }}</strong>
+          <br>
+          <a href="mailto:{{ c.adhesion.email }}" style="font-size:.75rem;color:var(--green)">
+            {{ c.adhesion.email }}
+          </a>
+          {% if c.adhesion.etudiant == 'oui' %}
+            <span class="badge badge-blue" style="font-size:.65rem;margin-left:.3rem">Étudiant</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.82rem">{{ c.adhesion.type_adhesion or '–' }}</td>
+        <td><strong>{{ "%.0f"|format(c.montant) }} €</strong></td>
+        <td>
+          {% if c.statut == 'paye' %}
+            <span class="badge badge-green"><i class="fa-solid fa-check"></i> Payé</span>
+          {% elif c.statut == 'retard' %}
+            <span class="badge badge-red"><i class="fa-solid fa-triangle-exclamation"></i> Retard</span>
+          {% else %}
+            <span class="badge badge-orange"><i class="fa-regular fa-clock"></i> En attente</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#6b7280">
+          {{ c.date_paiement.strftime('%d/%m/%Y') if c.date_paiement else '–' }}
+        </td>
+        <td style="font-size:.78rem">{{ c.mode_paiement or '–' }}</td>
+        <td>
+          <div class="actions">
+            {% if c.statut != 'paye' %}
+            <!-- Bouton payer avec sélection du mode -->
+            <div class="dropdown-paiement">
+              <button class="btn btn-green" onclick="toggleDropdown({{ c.id }})">
+                <i class="fa-solid fa-check"></i> Marquer payé
+              </button>
+              <div class="dropdown-menu" id="drop-{{ c.id }}" style="display:none">
+                {% for mode in ['Virement', 'Wave', 'PayPal', 'Espèces', 'Stripe'] %}
+                <a href="{{ url_for('admin_cotisation_statut', id=c.id, statut='paye') }}?mode={{ mode }}">
+                  {{ mode }}
+                </a>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+            {% if c.statut == 'paye' %}
+            <a href="{{ url_for('admin_cotisation_statut', id=c.id, statut='en_attente') }}"
+               class="btn btn-gray" title="Annuler le paiement"
+               onclick="return confirm('Annuler ce paiement ?')">
+              <i class="fa-solid fa-rotate-left"></i>
+            </a>
+            {% endif %}
+            {% if c.statut == 'en_attente' %}
+            <a href="{{ url_for('admin_cotisation_statut', id=c.id, statut='retard') }}"
+               class="btn btn-gray" title="Marquer en retard">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:2rem;color:#6b7280">
+        Aucun membre actif trouvé.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dropdown-paiement { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute; top: 100%; left: 0; z-index: 100;
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: var(--shadow); min-width: 130px; overflow: hidden;
+  }
+  .dropdown-menu a {
+    display: block; padding: .55rem 1rem; font-size: .85rem;
+    color: var(--text); text-decoration: none; transition: background .1s;
+  }
+  .dropdown-menu a:hover { background: var(--green-light); color: var(--green); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDropdown(id) {
+  document.querySelectorAll('.dropdown-menu').forEach(d => {
+    if (d.id !== 'drop-' + id) d.style.display = 'none';
+  });
+  const d = document.getElementById('drop-' + id);
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+// Fermer en cliquant ailleurs
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.dropdown-paiement')) {
+    document.querySelectorAll('.dropdown-menu').forEach(d => d.style.display = 'none');
+  }
+});
+</script>
+{% endblock %}

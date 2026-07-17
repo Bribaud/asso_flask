@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ actu.titre }} – {{ asso.nom_court }}{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <span class="card-tag" style="background:rgba(255,255,255,.2);color:#fff">{{ actu.categorie }}</span>
+    <h1>{{ actu.titre }}</h1>
+    <p>{{ actu.date_creation.strftime('%d %B %Y') }}</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="form-card" style="max-width:800px">
+
+      {% if actu.image %}
+      <img src="{{ url_for('static', filename='uploads/' ~ actu.image) }}"
+           alt="{{ actu.titre }}"
+           style="width:100%;border-radius:10px;margin-bottom:1.5rem;max-height:400px;object-fit:cover" />
+      {% endif %}
+
+      {% if actu.extrait %}
+      <p style="color:var(--text-muted);font-size:1.05rem;font-style:italic;
+                border-left:3px solid var(--green);padding-left:1rem;margin-bottom:1.5rem">
+        {{ actu.extrait }}
+      </p>
+      {% endif %}
+
+      {% if actu.contenu %}
+      <div style="line-height:1.85;color:var(--text);white-space:pre-wrap">{{ actu.contenu }}</div>
+      {% endif %}
+
+      <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+        <a href="{{ url_for('actualites') }}" class="btn btn-outline">← Retour aux actualités</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}

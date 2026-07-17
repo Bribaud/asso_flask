@@ -1,0 +1,389 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+@keyframes countUp { from { opacity:0 } to { opacity:1 } }
+@keyframes pulse { 0%,100% { transform:scale(1) } 50% { transform:scale(1.05) } }
+
+.stat-card {
+  animation:fadeUp .5s ease forwards;
+  opacity:0;
+}
+.stat-card:nth-child(1) { animation-delay:.05s }
+.stat-card:nth-child(2) { animation-delay:.10s }
+.stat-card:nth-child(3) { animation-delay:.15s }
+.stat-card:nth-child(4) { animation-delay:.20s }
+.stat-card:nth-child(5) { animation-delay:.25s }
+.stat-card:nth-child(6) { animation-delay:.30s }
+
+/* Barre de progression cotisations */
+.progress-bar-wrap {
+  background:#f3f4f6; border-radius:99px; height:10px; overflow:hidden; margin:.5rem 0;
+}
+.progress-bar-fill {
+  height:100%; border-radius:99px;
+  background:linear-gradient(90deg, var(--green), #4ade80);
+  transition:width 1.2s ease;
+}
+
+/* Raccourcis rapides */
+.quick-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem;
+}
+.quick-btn {
+  display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  padding:1.1rem .75rem; border-radius:12px;
+  border:1.5px solid var(--border); background:var(--bg);
+  text-decoration:none; color:var(--text);
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  font-size:.8rem; font-weight:600; text-align:center;
+}
+.quick-btn:hover {
+  transform:translateY(-3px); border-color:var(--green);
+  box-shadow:0 4px 12px rgba(26,122,74,.12); color:var(--green);
+}
+.quick-btn i { font-size:1.3rem; color:var(--green); }
+
+/* Badge alerte */
+.alert-badge {
+  display:inline-flex; align-items:center; gap:.4rem;
+  background:#fef3c7; color:#92400e; border:1px solid #fcd34d;
+  border-radius:99px; font-size:.72rem; font-weight:700;
+  padding:.2rem .65rem;
+}
+.alert-badge.red { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+.alert-badge.green { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
+
+/* Timeline activité */
+.timeline-item {
+  display:flex; gap:.85rem; padding:.65rem 0;
+  border-bottom:1px solid var(--border);
+}
+.timeline-item:last-child { border-bottom:none; }
+.timeline-dot {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; flex-shrink:0; margin-top:.1rem;
+}
+
+/* Santé système */
+.sante-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.6rem 0; border-bottom:1px solid var(--border); font-size:.85rem;
+}
+.sante-row:last-child { border-bottom:none; }
+.sante-indicator {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── BIENVENUE ── -->
+<div style="background:linear-gradient(135deg,var(--green) 0%,#0d5c35 100%);
+            border-radius:14px;padding:1.5rem 2rem;margin-bottom:1.5rem;
+            display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+  <div>
+    <h2 style="color:#fff;font-family:var(--font-head);margin:0 0 .3rem">
+      Bonjour, {{ session.get('admin_username', 'Admin') }} !
+    </h2>
+    <p style="color:rgba(255,255,255,.8);margin:0;font-size:.88rem">
+      <i class="fa-regular fa-calendar"></i>
+      {{ now.strftime('%A %d %B %Y') }}
+      &nbsp;·&nbsp; Espace Administration AKF
+    </p>
+  </div>
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+    {% if stats.en_attente > 0 %}
+    <a href="{{ url_for('admin_adhesions') }}"
+       style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
+              padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;
+              text-decoration:none;display:flex;align-items:center;gap:.4rem;
+              animation:pulse 2s infinite">
+      <i class="fa-solid fa-clock"></i>
+      {{ stats.en_attente }} adhésion(s) en attente
+    </a>
+    {% endif %}
+    {% if stats.non_lus > 0 %}
+    <a href="{{ url_for('admin_messages') }}"
+       style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
+              padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:600;
+              text-decoration:none;display:flex;align-items:center;gap:.4rem">
+      <i class="fa-solid fa-envelope"></i>
+      {{ stats.non_lus }} message(s) non lu(s)
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── STATS CARDS ── -->
+<div class="stat-cards" style="margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#d1fae5;color:#065f46">
+      <i class="fa-solid fa-users"></i>
+    </div>
+    <div>
+      <h3 class="counter" data-target="{{ stats.membres }}">{{ stats.membres }}</h3>
+      <p>Membres total</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#fff7ed;color:#ea580c">
+      <i class="fa-solid fa-clock"></i>
+    </div>
+    <div>
+      <h3 class="counter" data-target="{{ stats.en_attente }}">{{ stats.en_attente }}</h3>
+      <p>En attente</p>
+      {% if stats.en_attente > 0 %}
+      <span class="alert-badge" style="margin-top:.2rem">À traiter</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#fef3c7;color:#b45309">
+      <i class="fa-solid fa-hand-holding-heart"></i>
+    </div>
+    <div>
+      <h3 class="counter" data-target="{{ stats.dons }}">{{ stats.dons }}</h3>
+      <p>Dons reçus</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#d1fae5;color:#065f46">
+      <i class="fa-solid fa-euro-sign"></i>
+    </div>
+    <div>
+      <h3>{{ "%.0f"|format(stats.total_dons) }} €</h3>
+      <p>Total collecté</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#eff6ff;color:#2563eb">
+      <i class="fa-solid fa-envelope"></i>
+    </div>
+    <div>
+      <h3 class="counter" data-target="{{ stats.messages }}">{{ stats.messages }}</h3>
+      <p>Messages reçus</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon-box" style="background:#fee2e2;color:#dc2626">
+      <i class="fa-solid fa-envelope-open"></i>
+    </div>
+    <div>
+      <h3 class="counter" data-target="{{ stats.non_lus }}">{{ stats.non_lus }}</h3>
+      <p>Non lus</p>
+      {% if stats.non_lus > 0 %}
+      <span class="alert-badge red" style="margin-top:.2rem">Nouveau</span>
+      {% else %}
+      <span class="alert-badge green" style="margin-top:.2rem">Tout lu</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── GRILLE PRINCIPALE ── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+
+  <!-- OBJECTIF DONS -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-bullseye" style="color:var(--green);margin-right:.5rem"></i>Objectif de collecte 2026</h2>
+    </div>
+    <div style="padding:1.5rem">
+      {% set objectif = 500 %}
+      {% set pct = [[((stats.total_dons / objectif) * 100)|int, 100]|min, 0]|max %}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem">
+        <span style="font-size:1.6rem;font-weight:800;color:var(--green);font-family:var(--font-head)">
+          {{ "%.0f"|format(stats.total_dons) }} €
+        </span>
+        <span style="font-size:.85rem;color:var(--text-muted)">sur {{ objectif }} € visés</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="don-bar" style="width:0%" data-target="{{ pct }}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-top:.3rem">
+        <span>{{ stats.dons }} donateur(s)</span>
+        <span style="color:var(--green);font-weight:700">{{ pct }}% atteint</span>
+      </div>
+      {% if pct < 100 %}
+      <p style="font-size:.8rem;color:var(--text-muted);margin-top:.75rem;text-align:center">
+        Il manque <strong style="color:var(--green)">{{ "%.0f"|format(objectif - stats.total_dons) }} €</strong> pour l'objectif
+      </p>
+      {% endif %}
+      <a href="{{ url_for('admin_dons') }}" class="btn btn-green"
+         style="width:100%;justify-content:center;margin-top:1rem;font-size:.82rem">
+        <i class="fa-solid fa-eye"></i> Voir les dons
+      </a>
+    </div>
+  </div>
+
+  <!-- COTISATIONS DU MOIS -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-calendar-check" style="color:var(--green);margin-right:.5rem"></i>Cotisations — {{ now.strftime('%B %Y') }}</h2>
+    </div>
+    <div style="padding:1.5rem">
+      {% set total_cot = stats.membres %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+        <div style="text-align:center;padding:.75rem;background:#d1fae5;border-radius:10px">
+          <div style="font-size:1.4rem;font-weight:800;color:#065f46">{{ stats.get('cot_payes', 0) }}</div>
+          <div style="font-size:.72rem;color:#065f46;font-weight:600">Payés</div>
+        </div>
+        <div style="text-align:center;padding:.75rem;background:#fef3c7;border-radius:10px">
+          <div style="font-size:1.4rem;font-weight:800;color:#b45309">{{ stats.get('cot_attente', 0) }}</div>
+          <div style="font-size:.72rem;color:#b45309;font-weight:600">En attente</div>
+        </div>
+      </div>
+      {% if stats.membres > 0 %}
+      {% set pct_cot = ((stats.get('cot_payes', 0) / stats.membres) * 100)|int %}
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="cot-bar" style="width:0%" data-target="{{ pct_cot }}"></div>
+      </div>
+      <p style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-top:.3rem">
+        Taux de recouvrement : <strong style="color:var(--green)">{{ pct_cot }}%</strong>
+      </p>
+      {% endif %}
+      <a href="{{ url_for('admin_cotisations') }}" class="btn btn-green"
+         style="width:100%;justify-content:center;margin-top:1rem;font-size:.82rem">
+        <i class="fa-solid fa-coins"></i> Gérer les cotisations
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── RACCOURCIS + INFO ── -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:1.25rem">
+
+  <!-- RACCOURCIS -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-bolt" style="color:var(--green);margin-right:.5rem"></i>Accès rapides</h2>
+    </div>
+    <div style="padding:1.25rem">
+      <div class="quick-grid">
+        <a href="{{ url_for('admin_adhesions') }}" class="quick-btn">
+          <i class="fa-solid fa-users"></i>
+          Membres
+          {% if stats.en_attente > 0 %}
+          <span style="background:#ea580c;color:#fff;border-radius:99px;font-size:.65rem;padding:.1rem .45rem">{{ stats.en_attente }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('admin_cotisations') }}" class="quick-btn">
+          <i class="fa-solid fa-coins"></i>
+          Cotisations
+        </a>
+        <a href="{{ url_for('admin_dons') }}" class="quick-btn">
+          <i class="fa-solid fa-hand-holding-heart"></i>
+          Dons
+        </a>
+        <a href="{{ url_for('admin_messages') }}" class="quick-btn">
+          <i class="fa-solid fa-envelope"></i>
+          Messages
+          {% if stats.non_lus > 0 %}
+          <span style="background:#dc2626;color:#fff;border-radius:99px;font-size:.65rem;padding:.1rem .45rem">{{ stats.non_lus }}</span>
+          {% endif %}
+        </a>
+        <a href="{{ url_for('admin_actualites') }}" class="quick-btn">
+          <i class="fa-solid fa-newspaper"></i>
+          Actualités
+        </a>
+        <a href="{{ url_for('admin_evenements') }}" class="quick-btn">
+          <i class="fa-solid fa-calendar-days"></i>
+          Événements
+        </a>
+        <a href="{{ url_for('admin_projets') }}" class="quick-btn">
+          <i class="fa-solid fa-diagram-project"></i>
+          Projets
+        </a>
+        <a href="{{ url_for('admin_bureau') }}" class="quick-btn">
+          <i class="fa-solid fa-id-badge"></i>
+          Bureau
+        </a>
+        <a href="{{ url_for('admin_envoyer_email') }}" class="quick-btn">
+          <i class="fa-solid fa-paper-plane"></i>
+          Envoyer email
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SANTÉ SYSTÈME -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <h2><i class="fa-solid fa-server" style="color:var(--green);margin-right:.5rem"></i>Système</h2>
+    </div>
+    <div style="padding:1.25rem">
+      <div class="sante-row">
+        <span style="font-size:.82rem">Site public</span>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <div class="sante-indicator" style="background:#22c55e"></div>
+          <span style="font-size:.75rem;color:#22c55e;font-weight:600">En ligne</span>
+        </div>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">Base de données</span>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <div class="sante-indicator" style="background:#22c55e"></div>
+          <span style="font-size:.75rem;color:#22c55e;font-weight:600">Connectée</span>
+        </div>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">RNA</span>
+        <span style="font-size:.75rem;color:var(--text-muted)">W872016956</span>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">SIREN</span>
+        <span style="font-size:.75rem;color:var(--text-muted)">105 083 620</span>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">Membres actifs</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--green)">{{ stats.membres - stats.en_attente }}</span>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">Projets publiés</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--green)">{{ stats.projets }}</span>
+      </div>
+      <div class="sante-row">
+        <span style="font-size:.82rem">Actualités</span>
+        <span style="font-size:.82rem;font-weight:700;color:var(--green)">{{ stats.actualites }}</span>
+      </div>
+      <a href="{{ url_for('admin_parametres') }}" class="btn btn-gray"
+         style="width:100%;justify-content:center;margin-top:1rem;font-size:.8rem">
+        <i class="fa-solid fa-gear"></i> Paramètres
+      </a>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Compteurs animés
+document.querySelectorAll('.counter').forEach(el => {
+  const target = parseInt(el.dataset.target);
+  if (!target) return;
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(timer);
+  }, 30);
+});
+
+// Barres de progression animées
+setTimeout(() => {
+  document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+    bar.style.width = bar.dataset.target + '%';
+  });
+}, 300);
+</script>
+{% endblock %}

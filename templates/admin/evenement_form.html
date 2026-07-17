@@ -1,0 +1,105 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'Modifier' if evt else 'Nouvel' }} événement{% endblock %}
+{% block page_title %}{{ 'Modifier l\'événement' if evt else 'Nouvel événement' }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:1rem">
+  <a href="{{ url_for('admin_evenements') }}" class="btn btn-gray">
+    <i class="fa-solid fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>{{ 'Modifier' if evt else 'Créer' }} un événement</h2>
+  </div>
+  <div style="padding:1.5rem">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Titre *</label>
+          <input type="text" name="titre" value="{{ evt.titre if evt else '' }}"
+                 placeholder="Ex: Assemblée Générale AKF 2026" required />
+        </div>
+
+        <div class="form-group">
+          <label>Type d'événement *</label>
+          <select name="type_event" required>
+            {% for t in ['AG', 'Collecte', 'Sortie', 'Culturel', 'Réunion', 'Sport', 'Autre'] %}
+              <option value="{{ t }}" {{ 'selected' if evt and evt.type_event == t }}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Date et heure de début *</label>
+          <input type="datetime-local" name="date_event"
+                 value="{{ evt.date_event.strftime('%Y-%m-%dT%H:%M') if evt else '' }}" required />
+        </div>
+
+        <div class="form-group">
+          <label>Heure de fin (facultatif)</label>
+          <input type="time" name="heure_fin" value="{{ evt.heure_fin if evt else '' }}" />
+        </div>
+
+        <div class="form-group">
+          <label>Lieu</label>
+          <input type="text" name="lieu" value="{{ evt.lieu if evt else '' }}"
+                 placeholder="Ex: Salle des fêtes de Limoges" />
+        </div>
+
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Adresse complète</label>
+          <input type="text" name="adresse" value="{{ evt.adresse if evt else '' }}"
+                 placeholder="Ex: 22 Avenue des Coutures, 87000 Limoges" />
+        </div>
+
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="6"
+                  placeholder="Décrivez l'événement, le programme, ce qu'il faut apporter...">{{ evt.description if evt else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Lien d'inscription / Plus d'infos (facultatif)</label>
+        <input type="url" name="lien_externe" value="{{ evt.lien_externe if evt else '' }}"
+               placeholder="https://..." />
+      </div>
+
+      <div class="form-group">
+        <label>Image</label>
+        {% if evt and evt.image %}
+          <div style="margin-bottom:.75rem">
+            <img src="{{ url_for('static', filename='uploads/' + evt.image) }}"
+                 style="height:80px;border-radius:8px;object-fit:cover" />
+            <p style="font-size:.75rem;color:#6b7280;margin-top:.3rem">Image actuelle</p>
+          </div>
+        {% endif %}
+        <input type="file" name="image" accept="image/*" />
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:.75rem">
+        <input type="checkbox" id="publie" name="publie"
+               {{ 'checked' if not evt or evt.publie }}
+               style="width:18px;height:18px;accent-color:var(--green)" />
+        <label for="publie" style="margin:0;font-weight:600">Publié (visible sur le site)</label>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn btn-green">
+          <i class="fa-solid fa-floppy-disk"></i>
+          {{ 'Mettre à jour' if evt else 'Créer l\'événement' }}
+        </button>
+        <a href="{{ url_for('admin_evenements') }}" class="btn btn-gray">Annuler</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Actualités{% endblock %}
+{% block page_title %}Actualités{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem">
+  <a href="{{ url_for('admin_actualite_nouvelle') }}" class="btn btn-green">
+    <i class="fa-solid fa-plus"></i> Nouvelle actualité
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Liste des actualités ({{ actualites|length }})</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Titre</th>
+        <th>Catégorie</th>
+        <th>Statut</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in actualites %}
+      <tr>
+        <td>
+          {% if a.image %}
+            <img src="{{ url_for('static', filename='uploads/' + a.image) }}"
+                 style="width:56px;height:40px;object-fit:cover;border-radius:6px" />
+          {% else %}
+            <div style="width:56px;height:40px;background:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af">
+              <i class="fa-solid fa-newspaper"></i>
+            </div>
+          {% endif %}
+        </td>
+        <td><strong>{{ a.titre }}</strong></td>
+        <td><span class="badge badge-blue">{{ a.categorie }}</span></td>
+        <td>
+          {% if a.publie %}
+            <span class="badge badge-green"><i class="fa-solid fa-eye"></i> Publié</span>
+          {% else %}
+            <span class="badge badge-gray"><i class="fa-solid fa-eye-slash"></i> Brouillon</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#6b7280">{{ a.date_creation.strftime('%d/%m/%Y') }}</td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('actualite_detail', slug=a.slug) }}" target="_blank" class="btn btn-gray">
+              <i class="fa-solid fa-eye"></i>
+            </a>
+            <a href="{{ url_for('admin_actualite_modifier', id=a.id) }}" class="btn btn-green">
+              <i class="fa-solid fa-pen"></i>
+            </a>
+            <a href="{{ url_for('admin_actualite_supprimer', id=a.id) }}" class="btn btn-red"
+               onclick="return confirm('Supprimer cette actualité ?')">
+              <i class="fa-solid fa-trash"></i>
+            </a>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7280">
+        Aucune actualité. <a href="{{ url_for('admin_actualite_nouvelle') }}" style="color:var(--green)">Créer la première →</a>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

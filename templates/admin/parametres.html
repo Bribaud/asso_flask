@@ -1,0 +1,292 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Paramètres{% endblock %}
+{% block page_title %}Paramètres & Accès{% endblock %}
+
+{% block content %}
+
+<div class="parametres-layout">
+
+  <!-- COLONNE GAUCHE -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- COMPTE CONNECTÉ -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-circle-user" style="color:var(--green);margin-right:.5rem"></i>Mon compte</h2>
+      </div>
+      <div style="padding:1.5rem">
+        <div class="compte-info">
+          <div class="compte-avatar">{{ admin.username[0].upper() }}</div>
+          <div>
+            <p style="font-weight:700;font-size:1.1rem">{{ admin.username }}</p>
+            <span class="badge badge-green">Administrateur</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANGER MOT DE PASSE -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-key" style="color:var(--green);margin-right:.5rem"></i>Changer le mot de passe</h2>
+      </div>
+      <div style="padding:1.5rem">
+        <form method="POST" action="{{ url_for('admin_changer_mdp') }}">
+
+          <div class="form-group">
+            <label>Mot de passe actuel *</label>
+            <div class="input-mdp">
+              <input type="password" name="actuel" id="actuel" placeholder="••••••••" required />
+              <button type="button" onclick="toggleMdp('actuel')">
+                <i class="fa-regular fa-eye" id="eye-actuel"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Nouveau mot de passe *</label>
+            <div class="input-mdp">
+              <input type="password" name="nouveau" id="nouveau"
+                     placeholder="Minimum 6 caractères" required minlength="6"
+                     oninput="checkForce(this.value)" />
+              <button type="button" onclick="toggleMdp('nouveau')">
+                <i class="fa-regular fa-eye" id="eye-nouveau"></i>
+              </button>
+            </div>
+            <!-- Indicateur de force -->
+            <div class="force-bar" id="force-bar">
+              <div id="force-fill"></div>
+            </div>
+            <p id="force-label" style="font-size:.75rem;color:var(--text-muted);margin-top:.2rem"></p>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmer le nouveau mot de passe *</label>
+            <div class="input-mdp">
+              <input type="password" name="confirm" id="confirm"
+                     placeholder="••••••••" required />
+              <button type="button" onclick="toggleMdp('confirm')">
+                <i class="fa-regular fa-eye" id="eye-confirm"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">
+            <i class="fa-solid fa-floppy-disk"></i> Enregistrer le nouveau mot de passe
+          </button>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- COLONNE DROITE -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem">
+
+    <!-- LISTE DES ADMINS -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-shield-halved" style="color:var(--green);margin-right:.5rem"></i>
+          Comptes administrateurs ({{ tous_admins|length }})
+        </h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Identifiant</th>
+            <th>Statut</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in tous_admins %}
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:.75rem">
+                <div class="mini-avatar">{{ a.username[0].upper() }}</div>
+                <strong>{{ a.username }}</strong>
+                {% if a.username == admin.username %}
+                  <span class="badge badge-green" style="font-size:.65rem">Vous</span>
+                {% endif %}
+              </div>
+            </td>
+            <td><span class="badge badge-green">Actif</span></td>
+            <td>
+              {% if a.username != admin.username %}
+                <a href="{{ url_for('admin_supprimer_admin', id=a.id) }}"
+                   class="btn btn-red"
+                   onclick="return confirm('Supprimer le compte {{ a.username }} ?')">
+                  <i class="fa-solid fa-trash"></i>
+                </a>
+              {% else %}
+                <span style="font-size:.78rem;color:var(--text-muted)">Compte actif</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AJOUTER UN ADMIN -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-user-plus" style="color:var(--green);margin-right:.5rem"></i>Ajouter un administrateur</h2>
+      </div>
+      <div style="padding:1.5rem">
+        <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:1.25rem">
+          Donnez accès au panel admin à un autre membre du bureau (ex: le trésorier, le président).
+        </p>
+        <form method="POST" action="{{ url_for('admin_ajouter_admin') }}">
+
+          <div class="form-group">
+            <label>Identifiant *</label>
+            <input type="text" name="username" placeholder="Ex: tresorier, president..."
+                   autocomplete="off" required />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label>Mot de passe *</label>
+              <input type="password" name="password" placeholder="Min. 6 caractères"
+                     required minlength="6" />
+            </div>
+            <div class="form-group">
+              <label>Confirmer *</label>
+              <input type="password" name="confirm" placeholder="••••••••" required />
+            </div>
+          </div>
+
+          <div class="info-box-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p>Partagez le mot de passe de manière sécurisée (en personne ou via un canal chiffré).</p>
+          </div>
+
+          <button type="submit" class="btn btn-green" style="width:100%;justify-content:center;margin-top:1rem">
+            <i class="fa-solid fa-user-plus"></i> Créer le compte
+          </button>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- INFOS SÉCURITÉ -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-circle-info" style="color:var(--green);margin-right:.5rem"></i>Conseils sécurité</h2>
+      </div>
+      <div style="padding:1.5rem;font-size:.85rem;color:var(--text-muted);line-height:2">
+        <p><i class="fa-solid fa-check" style="color:var(--green)"></i> Utilisez un mot de passe d'au moins <strong>8 caractères</strong></p>
+        <p><i class="fa-solid fa-check" style="color:var(--green)"></i> Mélangez <strong>majuscules, chiffres et symboles</strong></p>
+        <p><i class="fa-solid fa-check" style="color:var(--green)"></i> Ne partagez jamais votre mot de passe par email</p>
+        <p><i class="fa-solid fa-check" style="color:var(--green)"></i> Déconnectez-vous après chaque session sur un PC partagé</p>
+        <p><i class="fa-solid fa-check" style="color:var(--green)"></i> Changez votre mot de passe régulièrement</p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .parametres-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  /* Compte info */
+  .compte-info  { display: flex; align-items: center; gap: 1.25rem; }
+  .compte-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--green); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 700; flex-shrink: 0;
+  }
+  .mini-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--green-light); color: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* Input mot de passe */
+  .input-mdp { position: relative; }
+  .input-mdp input { padding-right: 2.5rem; width: 100%; }
+  .input-mdp button {
+    position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--text-muted);
+    font-size: .9rem; padding: 0;
+  }
+  .input-mdp button:hover { color: var(--green); }
+
+  /* Force mot de passe */
+  .force-bar {
+    height: 4px; background: var(--border); border-radius: 2px;
+    margin-top: .5rem; overflow: hidden;
+  }
+  #force-fill { height: 100%; width: 0; transition: width .3s, background .3s; border-radius: 2px; }
+
+  /* Warning box */
+  .info-box-warning {
+    display: flex; gap: .6rem; align-items: flex-start;
+    background: #fef3c7; border-radius: 8px; padding: .75rem 1rem;
+    font-size: .82rem; color: #92400e; margin-top: .75rem;
+  }
+  .info-box-warning i { flex-shrink: 0; margin-top: .1rem; }
+  .info-box-warning p { margin: 0; }
+
+  @media (max-width: 900px) {
+    .parametres-layout { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleMdp(id) {
+    const input = document.getElementById(id);
+    const eye   = document.getElementById('eye-' + id);
+    if (input.type === 'password') {
+      input.type = 'text';
+      eye.className = 'fa-regular fa-eye-slash';
+    } else {
+      input.type = 'password';
+      eye.className = 'fa-regular fa-eye';
+    }
+  }
+
+  function checkForce(val) {
+    const fill  = document.getElementById('force-fill');
+    const label = document.getElementById('force-label');
+    let score = 0;
+    if (val.length >= 6)  score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const niveaux = [
+      { pct: '20%',  color: '#ef4444', label: 'Très faible' },
+      { pct: '40%',  color: '#f97316', label: 'Faible' },
+      { pct: '60%',  color: '#eab308', label: 'Moyen' },
+      { pct: '80%',  color: '#22c55e', label: 'Fort' },
+      { pct: '100%', color: '#16a34a', label: 'Très fort' },
+    ];
+    const n = niveaux[Math.max(0, score - 1)];
+    if (val.length === 0) {
+      fill.style.width = '0'; label.textContent = '';
+    } else {
+      fill.style.width = n.pct;
+      fill.style.background = n.color;
+      label.textContent = 'Force : ' + n.label;
+      label.style.color = n.color;
+    }
+  }
+</script>
+{% endblock %}

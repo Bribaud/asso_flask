@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% block title %}Événements – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Retrouvez tous les événements de l'AKF : assemblées générales, collectes, sorties culturelles et activités de la diaspora koungheuloise en France.{% endblock %}
+{% block og_title %}Événements – {{ asso.nom }}{% endblock %}
+{% block og_url %}https://asso-flask.onrender.com/evenements{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp  { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+@keyframes pulse   { 0%,100% { transform:scale(1) } 50% { transform:scale(1.1) } }
+@keyframes shimmer { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
+
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.anim-fade-in { opacity:0; animation:fadeIn .6s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s }
+
+.reveal { opacity:0; transform:translateY(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity:1; transform:none; }
+
+/* ── Compteur animé ── */
+.countdown-banner {
+  background:linear-gradient(135deg, var(--green) 0%, #0d5c35 100%);
+  color:#fff; padding:1.5rem 0; text-align:center;
+  position:relative; overflow:hidden;
+}
+.countdown-banner::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent);
+  background-size:200% 100%;
+  animation:shimmer 3s infinite;
+}
+.countdown-grid { display:flex; justify-content:center; gap:2rem; flex-wrap:wrap; }
+.countdown-item { text-align:center; }
+.countdown-num  { font-size:2.5rem; font-weight:800; font-family:var(--font-head); line-height:1; display:block; }
+.countdown-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; opacity:.8; }
+
+/* ── Event cards ── */
+.evenements-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:1.75rem; margin-bottom:2rem;
+}
+
+.event-card {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+  transition:transform .3s, box-shadow .3s;
+  position:relative; display:flex; flex-direction:column;
+}
+.event-card:hover { transform:translateY(-8px); box-shadow:0 20px 50px rgba(0,0,0,.12); }
+
+.event-img-wrap { position:relative; overflow:hidden; }
+.event-img { width:100%; height:200px; object-fit:cover; transition:transform .4s ease; }
+.event-card:hover .event-img { transform:scale(1.05); }
+
+.event-img-placeholder {
+  height:200px; display:flex; align-items:center; justify-content:center;
+  font-size:3rem; color:var(--green); transition:background .3s;
+}
+.event-card:hover .event-img-placeholder { background:var(--green); color:#fff; }
+
+.event-overlay {
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.5));
+  opacity:0; transition:opacity .3s;
+}
+.event-card:hover .event-overlay { opacity:1; }
+
+.event-date-badge {
+  position:absolute; top:1rem; left:1rem; z-index:2;
+  background:var(--green); color:#fff; border-radius:10px;
+  text-align:center; padding:.5rem .8rem; line-height:1.2;
+  box-shadow:0 4px 12px rgba(26,122,74,.4);
+  transition:transform .2s;
+}
+.event-card:hover .event-date-badge { transform:scale(1.05); }
+.event-date-past { background:#6b7280; }
+.event-day   { display:block; font-size:1.5rem; font-weight:800; }
+.event-month { display:block; font-size:.62rem; text-transform:uppercase; letter-spacing:.05em; }
+
+.event-body { padding:1.35rem; flex:1; display:flex; flex-direction:column; }
+.event-meta { display:flex; align-items:center; gap:.6rem; margin-bottom:.7rem; flex-wrap:wrap; }
+
+.event-type-badge {
+  font-size:.68rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.07em; padding:.25rem .75rem; border-radius:99px;
+}
+.event-type-ag       { background:#ede9fe; color:#7c3aed; }
+.event-type-collecte { background:#fce7f3; color:#be185d; }
+.event-type-sortie   { background:#dcfce7; color:#15803d; }
+.event-type-culturel { background:#fef3c7; color:#b45309; }
+.event-type-réunion  { background:#e0f2fe; color:#0369a1; }
+.event-type-sport    { background:#fff7ed; color:#c2410c; }
+.event-type-autre    { background:var(--green-light); color:var(--green); }
+
+.event-heure { font-size:.76rem; color:var(--text-muted); display:flex; align-items:center; gap:.3rem; }
+.event-card h3 { font-family:var(--font-head); font-size:1.1rem; margin-bottom:.5rem; line-height:1.4; }
+.event-lieu  { font-size:.82rem; color:var(--text-muted); margin-bottom:.6rem; display:flex; align-items:center; gap:.3rem; }
+.event-lieu i { color:var(--green); }
+.event-desc  { font-size:.86rem; color:var(--text-muted); line-height:1.6; flex:1; margin-bottom:.75rem; }
+
+.event-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding-top:.85rem; border-top:1px solid var(--border); margin-top:auto;
+}
+.event-lien {
+  color:var(--green); font-weight:600; font-size:.85rem;
+  text-decoration:none; display:flex; align-items:center; gap:.4rem;
+  transition:gap .2s;
+}
+.event-lien:hover { gap:.7rem; }
+
+/* Bande "Bientôt" */
+.event-soon {
+  position:absolute; top:1rem; right:1rem; z-index:2;
+  background:#f59e0b; color:#fff; font-size:.65rem; font-weight:700;
+  padding:.25rem .7rem; border-radius:99px; text-transform:uppercase;
+  letter-spacing:.05em; animation:pulse 2s infinite;
+}
+
+/* Passés */
+.evenements-passes .event-card { opacity:.75; filter:grayscale(.2); }
+.evenements-passes .event-card:hover { opacity:1; filter:none; }
+
+/* Vide */
+.event-empty {
+  text-align:center; padding:5rem 2rem; color:var(--text-muted);
+  grid-column:1/-1;
+}
+.event-empty i { font-size:3.5rem; display:block; margin-bottom:1rem; opacity:.4; }
+
+@media (max-width:640px) { .evenements-grid { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <span class="anim-fade-in section-tag"
+          style="background:rgba(255,255,255,.2);color:#fff;margin-bottom:1rem;display:inline-block">
+      AGENDA AKF
+    </span>
+    <h1 class="anim-fade-up delay-2">Nos Événements</h1>
+    <p class="anim-fade-up delay-3">Assemblées générales, collectes, sorties et activités culturelles</p>
+  </div>
+</div>
+
+<!-- PROCHAIN ÉVÉNEMENT — COUNTDOWN -->
+{% if a_venir %}
+{% set prochain = a_venir[0] %}
+<div class="countdown-banner" id="countdown-banner">
+  <div class="container" style="position:relative;z-index:1">
+    <p style="font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;opacity:.8;margin-bottom:.75rem">
+      Prochain événement
+    </p>
+    <p style="font-size:1.2rem;font-weight:700;margin-bottom:1rem">
+      {{ prochain.titre }}
+      {% if prochain.lieu %} · <span style="opacity:.8;font-weight:400">{{ prochain.lieu }}</span>{% endif %}
+    </p>
+    <div class="countdown-grid" id="countdown"
+         data-date="{{ prochain.date_event.strftime('%Y-%m-%dT%H:%M:00') }}">
+      <div class="countdown-item">
+        <span class="countdown-num" id="cd-jours">--</span>
+        <span class="countdown-label">Jours</span>
+      </div>
+      <div class="countdown-item">
+        <span class="countdown-num" id="cd-heures">--</span>
+        <span class="countdown-label">Heures</span>
+      </div>
+      <div class="countdown-item">
+        <span class="countdown-num" id="cd-minutes">--</span>
+        <span class="countdown-label">Minutes</span>
+      </div>
+      <div class="countdown-item">
+        <span class="countdown-num" id="cd-secondes">--</span>
+        <span class="countdown-label">Secondes</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<section class="section">
+  <div class="container">
+
+    <!-- À VENIR -->
+    {% if a_venir %}
+    <div class="section-header reveal">
+      <span class="section-tag">À VENIR</span>
+      <h2>Prochains événements</h2>
+      <p style="color:var(--text-muted);margin-top:.5rem">
+        {{ a_venir|length }} événement(s) à ne pas manquer
+      </p>
+    </div>
+    <div class="evenements-grid">
+      {% for e in a_venir %}
+      {% set jours_restants = (e.date_event - now).days %}
+      <article class="event-card reveal" style="animation-delay:{{ loop.index0 * 0.1 }}s">
+        <div class="event-img-wrap">
+          {% if jours_restants <= 7 %}
+          <span class="event-soon"><i class="fa-solid fa-bolt"></i> Bientôt</span>
+          {% endif %}
+          <div class="event-date-badge">
+            <span class="event-day">{{ e.date_event.strftime('%d') }}</span>
+            <span class="event-month">{{ e.date_event.strftime('%b %Y') }}</span>
+          </div>
+          {% if e.image %}
+            <img src="{{ url_for('static', filename='uploads/' + e.image) }}"
+                 alt="{{ e.titre }}" class="event-img" />
+          {% else %}
+            <div class="event-img-placeholder" style="background:var(--green-light)">
+              {% if e.type_event == 'AG' %}<i class="fa-solid fa-people-group"></i>
+              {% elif e.type_event == 'Collecte' %}<i class="fa-solid fa-hand-holding-heart"></i>
+              {% elif e.type_event == 'Sortie' %}<i class="fa-solid fa-map-location-dot"></i>
+              {% elif e.type_event == 'Culturel' %}<i class="fa-solid fa-music"></i>
+              {% elif e.type_event == 'Sport' %}<i class="fa-solid fa-futbol"></i>
+              {% else %}<i class="fa-solid fa-calendar-star"></i>{% endif %}
+            </div>
+          {% endif %}
+          <div class="event-overlay"></div>
+        </div>
+        <div class="event-body">
+          <div class="event-meta">
+            <span class="event-type-badge event-type-{{ e.type_event|lower|replace(' ','-') }}">
+              {{ e.type_event }}
+            </span>
+            <span class="event-heure">
+              <i class="fa-regular fa-clock"></i>
+              {{ e.date_event.strftime('%H:%M') }}
+              {% if e.heure_fin %} – {{ e.heure_fin }}{% endif %}
+            </span>
+          </div>
+          <h3>{{ e.titre }}</h3>
+          {% if e.lieu %}
+          <p class="event-lieu">
+            <i class="fa-solid fa-location-dot"></i> {{ e.lieu }}
+          </p>
+          {% endif %}
+          {% if e.description %}
+          <p class="event-desc">{{ e.description[:130] }}{% if e.description|length > 130 %}…{% endif %}</p>
+          {% endif %}
+          <div class="event-footer">
+            <a href="{{ url_for('evenement_detail', slug=e.slug) }}" class="event-lien">
+              Voir les détails <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            {% if jours_restants >= 0 %}
+            <span style="font-size:.75rem;color:var(--text-muted)">
+              Dans {{ jours_restants }} jour(s)
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="event-empty reveal">
+      <i class="fa-regular fa-calendar-xmark"></i>
+      <p style="font-size:1.1rem;font-weight:600;margin-bottom:.5rem">Aucun événement prévu</p>
+      <p style="font-size:.9rem">Revenez bientôt — de nouveaux événements sont en cours de préparation !</p>
+      <a href="{{ url_for('contact') }}" class="btn btn-outline" style="margin-top:1.5rem">
+        <i class="fa-solid fa-envelope"></i> Proposer un événement
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- PASSÉS -->
+    {% if passes %}
+    <div class="section-header reveal" style="margin-top:4rem">
+      <span class="section-tag">PASSÉS</span>
+      <h2>Événements précédents</h2>
+    </div>
+    <div class="evenements-grid evenements-passes">
+      {% for e in passes %}
+      <article class="event-card reveal">
+        <div class="event-img-wrap">
+          <div class="event-date-badge event-date-past">
+            <span class="event-day">{{ e.date_event.strftime('%d') }}</span>
+            <span class="event-month">{{ e.date_event.strftime('%b %Y') }}</span>
+          </div>
+          {% if e.image %}
+            <img src="{{ url_for('static', filename='uploads/' + e.image) }}"
+                 alt="{{ e.titre }}" class="event-img" />
+          {% else %}
+            <div class="event-img-placeholder" style="background:#f3f4f6">
+              <i class="fa-solid fa-calendar-check" style="color:#9ca3af"></i>
+            </div>
+          {% endif %}
+        </div>
+        <div class="event-body">
+          <div class="event-meta">
+            <span class="event-type-badge" style="background:#f3f4f6;color:#6b7280">{{ e.type_event }}</span>
+          </div>
+          <h3>{{ e.titre }}</h3>
+          {% if e.lieu %}<p class="event-lieu"><i class="fa-solid fa-location-dot"></i> {{ e.lieu }}</p>{% endif %}
+          <div class="event-footer">
+            <a href="{{ url_for('evenement_detail', slug=e.slug) }}" class="event-lien" style="color:#6b7280">
+              Voir le compte-rendu <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section section-light">
+  <div class="container" style="text-align:center;max-width:580px">
+    <div class="reveal">
+      <span class="section-tag">NE RIEN RATER</span>
+      <h2 style="font-family:var(--font-head);margin:1rem 0">Restez informés</h2>
+      <p style="color:var(--text-muted);line-height:1.8;margin-bottom:1.5rem">
+        Adhérez à l'AKF et soyez les premiers informés de nos prochains événements,
+        réunions et activités.
+      </p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="{{ url_for('adhesion') }}" class="btn btn-primary">
+          <i class="fa-solid fa-user-plus"></i> Adhérer à l'AKF
+        </a>
+        <a href="{{ url_for('contact') }}" class="btn btn-outline">
+          <i class="fa-solid fa-envelope"></i> Nous contacter
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Countdown
+const cdEl = document.getElementById('countdown');
+if (cdEl) {
+  const target = new Date(cdEl.dataset.date);
+  function update() {
+    const now  = new Date();
+    const diff = target - now;
+    if (diff <= 0) {
+      document.getElementById('countdown-banner').innerHTML =
+        '<div class="container" style="position:relative;z-index:1;font-size:1.2rem;font-weight:700">🎉 C\'est aujourd\'hui !</div>';
+      return;
+    }
+    const j = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-jours').textContent    = String(j).padStart(2,'0');
+    document.getElementById('cd-heures').textContent   = String(h).padStart(2,'0');
+    document.getElementById('cd-minutes').textContent  = String(m).padStart(2,'0');
+    document.getElementById('cd-secondes').textContent = String(s).padStart(2,'0');
+  }
+  update();
+  setInterval(update, 1000);
+}
+</script>
+{% endblock %}

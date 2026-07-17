@@ -1,0 +1,62 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dons{% endblock %}
+{% block page_title %}Dons reçus{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:1.25rem;display:flex;gap:1rem">
+  <div class="stat-card" style="flex:1">
+    <div class="stat-card-icon gold"><i class="fa-solid fa-hand-holding-heart"></i></div>
+    <div><h3>{{ dons|length }}</h3><p>Dons enregistrés</p></div>
+  </div>
+  <div class="stat-card" style="flex:1">
+    <div class="stat-card-icon green"><i class="fa-solid fa-euro-sign"></i></div>
+    <div><h3>{{ "%.2f"|format(total) }} €</h3><p>Total collecté (EUR)</p></div>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>Liste des dons</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Donateur</th>
+        <th>Email</th>
+        <th>Montant</th>
+        <th>Devise</th>
+        <th>Statut</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in dons %}
+      <tr>
+        <td>{{ d.id }}</td>
+        <td><strong>{{ d.nom or 'Anonyme' }}</strong></td>
+        <td>{{ d.email or '–' }}</td>
+        <td><strong>{{ "%.2f"|format(d.montant) }}</strong></td>
+        <td>{{ d.devise }}</td>
+        <td>
+          {% if d.statut == 'complete' or d.statut == 'paye' %}
+            <span class="badge badge-green"><i class="fa-solid fa-check"></i> Reçu</span>
+          {% elif d.statut == 'en_attente' %}
+            <span class="badge badge-orange"><i class="fa-solid fa-clock"></i> En attente</span>
+          {% elif d.statut == 'echoue' %}
+            <span class="badge badge-red"><i class="fa-solid fa-xmark"></i> Échoué</span>
+          {% else %}
+            <span class="badge badge-gray">{{ d.statut }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size:.78rem;color:#6b7280">{{ d.date_creation.strftime('%d/%m/%Y %H:%M') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:2rem;color:#6b7280">Aucun don enregistré.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

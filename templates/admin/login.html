@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion Admin – AKF</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --green: #1a7a4a; --green-dark: #145f38; --green-light: #e8f5ee; --border: #e5e7eb; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #f8faf9; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-card { background: #fff; border-radius: 16px; padding: 2.5rem; width: 100%; max-width: 400px; box-shadow: 0 8px 32px rgba(0,0,0,.1); }
+    .login-logo { text-align: center; margin-bottom: 2rem; }
+    .login-logo .akf { font-size: 2.5rem; font-weight: 700; color: #1c1c1c; }
+    .login-logo .akf span { color: var(--green); }
+    .login-logo p { font-size: .82rem; color: #6b7280; margin-top: .3rem; }
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; font-weight: 600; font-size: .88rem; margin-bottom: .4rem; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; left: .9rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: .9rem; }
+    .input-wrap input { width: 100%; padding: .75rem 1rem .75rem 2.5rem; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; font-family: inherit; transition: border-color .15s; }
+    .input-wrap input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,.1); }
+    .btn-login { width: 100%; background: var(--green); color: #fff; border: none; padding: .85rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: .6rem; }
+    .btn-login:hover { background: var(--green-dark); }
+    .flash         { padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1.25rem; font-size: .88rem; }
+    .flash-danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+    .flash-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+    .flash-info    { background: #eff6ff; color: #1d4ed8; border-left: 4px solid #3b82f6; }
+    .back-link { text-align: center; margin-top: 1.5rem; font-size: .82rem; }
+    .back-link a { color: var(--green); text-decoration: none; }
+    .back-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="akf">AK<span>F</span></div>
+      <p>Espace Administration</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="form-group">
+        <label for="username">Identifiant</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="username" name="username" placeholder="admin" required autofocus />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input type="password" id="password" name="password" placeholder="••••••••" required />
+        </div>
+      </div>
+      <button type="submit" class="btn-login">
+        <i class="fa-solid fa-right-to-bracket"></i> Se connecter
+      </button>
+    </form>
+
+    <div class="back-link">
+      <a href="{{ url_for('index') }}"><i class="fa-solid fa-arrow-left"></i> Retour au site</a>
+    </div>
+  </div>
+</body>
+</html>

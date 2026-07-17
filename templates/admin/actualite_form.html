@@ -1,0 +1,81 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ 'Modifier' if actu else 'Nouvelle' }} actualité{% endblock %}
+{% block page_title %}{{ 'Modifier l\'actualité' if actu else 'Nouvelle actualité' }}{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:1rem">
+  <a href="{{ url_for('admin_actualites') }}" class="btn btn-gray">
+    <i class="fa-solid fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <h2>{{ 'Modifier' if actu else 'Créer' }} une actualité</h2>
+  </div>
+  <div style="padding:1.5rem">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+
+        <div class="form-group">
+          <label>Titre *</label>
+          <input type="text" name="titre" value="{{ actu.titre if actu else '' }}"
+                 placeholder="Titre de l'actualité" required />
+        </div>
+
+        <div class="form-group">
+          <label>Catégorie</label>
+          <select name="categorie">
+            {% for cat in ['Portrait','Événements','Projets','Administratif','Solidarité','Communication','Autre'] %}
+              <option {{ 'selected' if actu and actu.categorie == cat }}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+
+      <div class="form-group">
+        <label>Extrait (affiché sur la liste)</label>
+        <textarea name="extrait" rows="3"
+                  placeholder="Résumé court...">{{ actu.extrait if actu else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Contenu complet</label>
+        <textarea name="contenu" rows="8"
+                  placeholder="Contenu complet de l'article...">{{ actu.contenu if actu else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Image</label>
+        {% if actu and actu.image %}
+          <div style="margin-bottom:.75rem">
+            <img src="{{ url_for('static', filename='uploads/' + actu.image) }}"
+                 style="height:80px;border-radius:8px;object-fit:cover" />
+            <p style="font-size:.75rem;color:#6b7280;margin-top:.3rem">Image actuelle</p>
+          </div>
+        {% endif %}
+        <input type="file" name="image" accept="image/*" />
+      </div>
+
+      <div class="form-group" style="display:flex;align-items:center;gap:.75rem">
+        <input type="checkbox" id="publie" name="publie"
+               {{ 'checked' if not actu or actu.publie }} style="width:18px;height:18px;accent-color:var(--green)" />
+        <label for="publie" style="margin:0;font-weight:600">Publié (visible sur le site)</label>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn btn-green">
+          <i class="fa-solid fa-floppy-disk"></i>
+          {{ 'Mettre à jour' if actu else 'Créer l\'actualité' }}
+        </button>
+        <a href="{{ url_for('admin_actualites') }}" class="btn btn-gray">Annuler</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

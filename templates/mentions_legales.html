@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Mentions légales – {{ asso.nom }}{% endblock %}
+{% block content %}
+
+<div class="page-hero">
+  <div class="container">
+    <h1>Mentions légales</h1>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div class="form-card" style="max-width:800px">
+      <h2 style="font-family:var(--font-head);margin-bottom:1.5rem">Informations légales</h2>
+
+      <h3 style="margin:1.5rem 0 .5rem">Identification de l'association</h3>
+      <table class="info-table">
+        <tr><td>Dénomination</td><td>{{ asso.nom }}</td></tr>
+        <tr><td>Forme juridique</td><td>Association loi 1901</td></tr>
+        <tr><td>RNA</td><td>{{ asso.rna }}</td></tr>
+        <tr><td>SIREN</td><td>{{ asso.siren }}</td></tr>
+        <tr><td>SIRET</td><td>{{ asso.siret }}</td></tr>
+        <tr><td>APE</td><td>88.99B – Action sociale sans hébergement n.c.a.</td></tr>
+        <tr><td>Siège social</td><td>{{ asso.siege }}</td></tr>
+        <tr><td>Date de déclaration</td><td>{{ asso.declaration }}</td></tr>
+        <tr><td>Publication JO</td><td>28 avril 2026, annonce n°2578</td></tr>
+        <tr><td>Préfecture</td><td>Haute-Vienne (87)</td></tr>
+      </table>
+
+      <h3 style="margin:1.5rem 0 .5rem">Direction de la publication</h3>
+      <p style="color:var(--text-muted)">Mamadou Moustapha Mané, Président de l'association.</p>
+
+      <h3 style="margin:1.5rem 0 .5rem">Contact</h3>
+      <p style="color:var(--text-muted)">
+        {% if asso.email %}Email : <a href="mailto:{{ asso.email }}">{{ asso.email }}</a><br>{% endif %}
+        Adresse : {{ asso.siege }}
+      </p>
+
+      <h3 style="margin:1.5rem 0 .5rem">Données personnelles</h3>
+      <p style="color:var(--text-muted)">
+        Les données collectées via les formulaires de ce site (adhésion, contact) sont utilisées
+        exclusivement dans le cadre des activités de l'association et ne sont pas transmises à des tiers.
+        Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression
+        de vos données en contactant l'association.
+      </p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

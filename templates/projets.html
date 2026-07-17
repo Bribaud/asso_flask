@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Projets – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Découvrez les projets de l'AKF au service du développement de Koungheul : éducation, santé, économie et cohésion sociale.{% endblock %}
+{% block og_title %}Nos projets – {{ asso.nom }}{% endblock %}
+{% block og_url %}https://asso-flask.onrender.com/projets{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s }
+
+.reveal { opacity:0; transform:translateY(40px); transition:opacity .7s ease, transform .7s ease; }
+.reveal.visible { opacity:1; transform:none; }
+
+.projet-card {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden;
+  transition:transform .25s, box-shadow .25s;
+  display:flex; flex-direction:column;
+}
+.projet-card:hover { transform:translateY(-8px); box-shadow:0 16px 40px rgba(0,0,0,.12); }
+
+.projet-card-img {
+  width:100%; height:220px; object-fit:cover;
+  transition:transform .4s ease;
+}
+.projet-card:hover .projet-card-img { transform:scale(1.04); }
+
+.projet-img-wrap { overflow:hidden; position:relative; }
+.projet-img-overlay {
+  position:absolute; inset:0; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.4));
+  opacity:0; transition:opacity .3s;
+}
+.projet-card:hover .projet-img-overlay { opacity:1; }
+
+.projet-tag {
+  position:absolute; top:1rem; left:1rem;
+  background:var(--green); color:#fff;
+  font-size:.7rem; font-weight:700; letter-spacing:.06em;
+  padding:.3rem .8rem; border-radius:99px; text-transform:uppercase;
+}
+
+.projet-body { padding:1.5rem; flex:1; display:flex; flex-direction:column; }
+.projet-body h3 { font-family:var(--font-head); font-size:1.2rem; margin-bottom:.6rem; }
+.projet-body p  { color:var(--text-muted); font-size:.9rem; line-height:1.7; flex:1; }
+
+.projet-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:1.25rem; padding-top:1rem; border-top:1px solid var(--border);
+}
+.projet-lien {
+  color:var(--green); font-weight:600; font-size:.88rem;
+  text-decoration:none; display:flex; align-items:center; gap:.4rem;
+  transition:gap .2s;
+}
+.projet-lien:hover { gap:.7rem; }
+
+/* Filtres */
+.filtre-btn {
+  padding:.4rem 1rem; border:1.5px solid var(--border); border-radius:99px;
+  background:var(--bg); font-size:.82rem; font-weight:600;
+  cursor:pointer; transition:.15s; color:var(--text);
+}
+.filtre-btn:hover { border-color:var(--green); color:var(--green); }
+.filtre-btn.active { background:var(--green); color:#fff; border-color:var(--green); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="container">
+    <span class="section-tag anim-fade-up"
+          style="background:rgba(255,255,255,.2);color:#fff;margin-bottom:1rem;display:inline-block">
+      NOS INITIATIVES
+    </span>
+    <h1 class="anim-fade-up delay-2">Nos Actions & Projets</h1>
+    <p class="anim-fade-up delay-3">Découvrez toutes nos initiatives au service des communautés de Koungheul</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+
+    <!-- FILTRES -->
+    {% set categories = projets | map(attribute='categorie') | select | unique | list %}
+    {% if categories|length > 1 %}
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:2.5rem" class="reveal">
+      <button class="filtre-btn active" onclick="filtrer('tous', this)">
+        Tous ({{ projets|length }})
+      </button>
+      {% for cat in categories %}
+      <button class="filtre-btn" onclick="filtrer('{{ cat }}', this)">
+        {{ cat }} ({{ projets | selectattr('categorie','equalto',cat) | list | length }})
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- GRILLE -->
+    <div class="cards-grid" id="projets-grid">
+      {% for p in projets %}
+      <article class="projet-card reveal delay-{{ loop.index if loop.index <= 3 else '' }}"
+               data-categorie="{{ p.categorie }}">
+        <div class="projet-img-wrap">
+          {% if p.image %}
+            <img src="{{ url_for('static', filename='uploads/' + p.image) }}"
+                 alt="{{ p.titre }}" class="projet-card-img" />
+          {% else %}
+            <div class="card-img-placeholder" style="height:220px">
+              <i class="fa-solid fa-earth-africa" style="font-size:2.5rem"></i>
+            </div>
+          {% endif %}
+          <div class="projet-img-overlay"></div>
+          <span class="projet-tag">{{ p.categorie }}</span>
+        </div>
+        <div class="projet-body">
+          <h3>{{ p.titre }}</h3>
+          <p>{{ p.description }}</p>
+          <div class="projet-footer">
+            <a href="{{ url_for('projet_detail', slug=p.slug) }}" class="projet-lien">
+              En savoir plus <i class="fa-solid fa-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% else %}
+      <p style="text-align:center;color:var(--text-muted);grid-column:1/-1;padding:3rem 0">
+        Aucun projet pour le moment.
+      </p>
+      {% endfor %}
+    </div>
+
+    <p id="aucun" style="display:none;text-align:center;color:var(--text-muted);margin-top:2rem">
+      Aucun projet dans cette catégorie.
+    </p>
+
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section section-light">
+  <div class="container" style="text-align:center;max-width:600px">
+    <div class="reveal">
+      <span class="section-tag">CONTRIBUER</span>
+      <h2 style="font-family:var(--font-head);margin:1rem 0">Soutenez nos projets</h2>
+      <p style="color:var(--text-muted);line-height:1.8;margin-bottom:1.5rem">
+        Chaque don permet de financer concrètement nos actions sur le terrain à Koungheul.
+      </p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="{{ url_for('don') }}" class="btn btn-primary">
+          <i class="fa-solid fa-heart"></i> Faire un don
+        </a>
+        <a href="{{ url_for('adhesion') }}" class="btn btn-outline">
+          <i class="fa-solid fa-user-plus"></i> Adhérer
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+function filtrer(cat, btn) {
+  document.querySelectorAll('.filtre-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  let nb = 0;
+  document.querySelectorAll('.projet-card').forEach(c => {
+    const show = cat === 'tous' || c.dataset.categorie === cat;
+    c.style.display = show ? '' : 'none';
+    if (show) nb++;
+  });
+  document.getElementById('aucun').style.display = nb === 0 ? 'block' : 'none';
+}
+</script>
+{% endblock %}

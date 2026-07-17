@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+{% block title %}Faire un don – {{ asso.nom }}{% endblock %}
+{% block meta_description %}Soutenez l'Association des Koungheulois de France. Chaque don contribue directement au développement de Koungheul : éducation, santé et solidarité.{% endblock %}
+
+{% block extra_css %}
+<style>
+@keyframes fadeUp  { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+@keyframes float   { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+@keyframes pulse   { 0%,100% { box-shadow:0 0 0 0 rgba(26,122,74,.4) } 70% { box-shadow:0 0 0 12px rgba(26,122,74,0) } }
+@keyframes shimmer { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
+
+.anim-fade-up { opacity:0; animation:fadeUp .7s ease forwards; }
+.delay-2 { animation-delay:.2s } .delay-3 { animation-delay:.3s } .delay-4 { animation-delay:.4s }
+
+.reveal { opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity:1; transform:none; }
+
+/* ── HERO DON ── */
+.hero-don {
+  background:linear-gradient(135deg, #1a7a4a 0%, #0d5c35 100%);
+  padding:5rem 0 3rem; text-align:center; position:relative; overflow:hidden;
+}
+.hero-don::before {
+  content:''; position:absolute; top:-30%; right:-10%;
+  width:500px; height:500px; border-radius:50%;
+  background:rgba(255,255,255,.04);
+}
+.hero-don::after {
+  content:''; position:absolute; bottom:-20%; left:-5%;
+  width:300px; height:300px; border-radius:50%;
+  background:rgba(255,255,255,.03);
+}
+.hero-don-icon {
+  width:80px; height:80px; background:rgba(255,255,255,.15);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:2rem; color:#fff; margin:0 auto 1.5rem;
+  animation:float 3s ease-in-out infinite;
+}
+.hero-don h1 { color:#fff; font-size:clamp(1.8rem,4vw,2.8rem); margin-bottom:.75rem; }
+.hero-don p  { color:rgba(255,255,255,.85); font-size:1.05rem; max-width:520px; margin:0 auto; }
+
+/* ── IMPACT STATS ── */
+.impact-band {
+  background:#fff; border-bottom:1px solid var(--border);
+  padding:1.5rem 0;
+}
+.impact-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+}
+.impact-item {
+  text-align:center; padding:1rem;
+  border-right:1px solid var(--border);
+}
+.impact-item:last-child { border-right:none; }
+.impact-num { font-size:1.8rem; font-weight:800; color:var(--green); font-family:var(--font-head); }
+.impact-label { font-size:.78rem; color:var(--text-muted); margin-top:.2rem; }
+
+/* ── LAYOUT ── */
+.don-layout {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:2rem; align-items:start;
+}
+
+/* ── MONTANTS ── */
+.devise-tabs { display:flex; gap:.5rem; margin-bottom:1.25rem; }
+.devise-btn {
+  flex:1; padding:.6rem; border:2px solid var(--border);
+  border-radius:8px; background:var(--bg); font-weight:600;
+  font-size:.88rem; cursor:pointer; transition:.15s;
+}
+.devise-btn.active { border-color:var(--green); background:var(--green-light); color:var(--green); }
+
+.montants-grid {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:.6rem; margin-bottom:1.25rem;
+}
+.montant-btn {
+  padding:.75rem .5rem; border:2px solid var(--border);
+  border-radius:10px; background:var(--bg); font-weight:700;
+  font-size:.9rem; cursor:pointer; transition:.2s;
+  position:relative; overflow:hidden;
+}
+.montant-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg, var(--green-light), transparent);
+  opacity:0; transition:opacity .2s;
+}
+.montant-btn:hover { border-color:var(--green); transform:translateY(-2px); }
+.montant-btn:hover::before { opacity:1; }
+.montant-btn.active {
+  border-color:var(--green); background:var(--green);
+  color:#fff; transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(26,122,74,.3);
+}
+
+/* ── PAIEMENT CARDS ── */
+.paiement-card {
+  border:1.5px solid var(--border); border-radius:var(--radius);
+  margin-bottom:1rem; overflow:hidden; transition:border-color .2s, box-shadow .2s;
+}
+.paiement-card:hover { border-color:var(--green); box-shadow:0 4px 16px rgba(26,122,74,.1); }
+.paiement-header {
+  display:flex; align-items:center; gap:1rem;
+  padding:1.1rem 1.25rem; cursor:pointer; background:var(--bg);
+  transition:background .15s;
+}
+.paiement-header:hover { background:var(--green-light); }
+.paiement-icon {
+  width:44px; height:44px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; flex-shrink:0; transition:transform .2s;
+}
+.paiement-card:hover .paiement-icon { transform:scale(1.1); }
+.paiement-header div:nth-child(2) { flex:1; }
+.paiement-header strong { font-size:.95rem; display:block; }
+.paiement-header p { font-size:.78rem; color:var(--text-muted); margin:0; }
+.paiement-chevron { color:var(--text-muted); transition:transform .25s; }
+.paiement-chevron.open { transform:rotate(180deg); }
+.paiement-body {
+  padding:1.1rem 1.25rem 1.25rem;
+  border-top:1px solid var(--border);
+  animation:fadeUp .3s ease;
+}
+
+.btn-paiement {
+  width:100%; padding:.9rem; border:none; border-radius:10px;
+  color:#fff; font-size:.95rem; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:.6rem;
+  transition:opacity .15s, transform .15s;
+  animation:pulse 2.5s infinite;
+}
+.btn-paiement:hover { opacity:.92; transform:translateY(-1px); }
+
+/* Wave */
+.wave-instructions { display:flex; flex-direction:column; gap:.75rem; margin-bottom:1.25rem; }
+.wave-step { display:flex; align-items:flex-start; gap:.75rem; font-size:.9rem; }
+.wave-step-num {
+  width:26px; height:26px; background:#0099cc; color:#fff;
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:.75rem; font-weight:700; flex-shrink:0;
+}
+.wave-numero {
+  background:#e0f7ff; border:1px solid #b3ecff; border-radius:8px;
+  padding:.75rem 1rem; display:flex; align-items:center; gap:.75rem;
+  font-size:1.05rem; color:#0099cc; font-weight:600;
+}
+
+/* RIB */
+.rib-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.rib-row { display:flex; justify-content:space-between; padding:.65rem 1rem; border-bottom:1px solid var(--border); font-size:.88rem; }
+.rib-row:last-child { border-bottom:none; }
+.rib-row span { color:var(--text-muted); }
+
+/* Sécurité */
+.securite-badge {
+  display:flex; align-items:center; justify-content:center; gap:.5rem;
+  font-size:.75rem; color:var(--text-muted); margin-top:.6rem;
+}
+
+/* Sidebar impact */
+.impact-card {
+  background:var(--green-light); border:1px solid var(--green);
+  border-radius:var(--radius); padding:1.5rem; margin-bottom:1rem;
+}
+.impact-row {
+  display:flex; gap:.85rem; align-items:flex-start;
+  padding:.65rem 0; border-bottom:1px solid rgba(26,122,74,.15);
+}
+.impact-row:last-child { border-bottom:none; }
+.impact-row-icon {
+  width:36px; height:36px; background:var(--green); color:#fff;
+  border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:.85rem; flex-shrink:0;
+}
+
+@media (max-width:768px) {
+  .don-layout { grid-template-columns:1fr; }
+  .impact-grid { grid-template-columns:1fr; }
+  .impact-item { border-right:none; border-bottom:1px solid var(--border); }
+  .impact-item:last-child { border-bottom:none; }
+  .montants-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="hero-don">
+  <div class="container" style="position:relative;z-index:1">
+    <div class="hero-don-icon anim-fade-up">
+      <i class="fa-solid fa-heart"></i>
+    </div>
+    <h1 class="anim-fade-up delay-2">Soutenez nos actions</h1>
+    <p class="anim-fade-up delay-3">
+      Chaque contribution, même modeste, améliore concrètement la vie des populations de Koungheul.
+      Votre don est 100% utilisé sur le terrain.
+    </p>
+  </div>
+</div>
+
+<!-- BANDE IMPACT -->
+<div class="impact-band">
+  <div class="container">
+    <div class="impact-grid">
+      <div class="impact-item reveal">
+        <div class="impact-num">100%</div>
+        <div class="impact-label">Des dons utilisés sur le terrain</div>
+      </div>
+      <div class="impact-item reveal">
+        <div class="impact-num">4</div>
+        <div class="impact-label">Domaines d'action financés</div>
+      </div>
+      <div class="impact-item reveal">
+        <div class="impact-num">ESS</div>
+        <div class="impact-label">Association reconnue loi 1901</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="form-section">
+  <div class="container">
+    <div class="don-layout">
+
+      <!-- COLONNE GAUCHE : formulaire -->
+      <div class="reveal">
+        <div class="form-card" style="margin:0">
+          <h2 style="font-family:var(--font-head);margin-bottom:.5rem">Choisissez un montant</h2>
+          <p style="color:var(--text-muted);margin-bottom:1.5rem">Sélectionnez ou entrez le montant de votre choix.</p>
+
+          <!-- Devise -->
+          <div class="devise-tabs">
+            <button type="button" class="devise-btn active" data-devise="EUR" onclick="setDevise(this)">
+              <i class="fa-solid fa-euro-sign"></i> Euro (€)
+            </button>
+            <button type="button" class="devise-btn" data-devise="FCFA" onclick="setDevise(this)">
+              <i class="fa-solid fa-coins"></i> FCFA
+            </button>
+          </div>
+
+          <!-- Montants EUR -->
+          <div id="montants-eur" class="montants-grid">
+            <button type="button" class="montant-btn" data-montant="10" onclick="setMontant(this)">10 €</button>
+            <button type="button" class="montant-btn active" data-montant="25" onclick="setMontant(this)">25 €</button>
+            <button type="button" class="montant-btn" data-montant="50" onclick="setMontant(this)">50 €</button>
+            <button type="button" class="montant-btn" data-montant="100" onclick="setMontant(this)">100 €</button>
+          </div>
+
+          <!-- Montants FCFA -->
+          <div id="montants-fcfa" class="montants-grid" style="display:none">
+            <button type="button" class="montant-btn" data-montant="5000" onclick="setMontant(this)">5 000</button>
+            <button type="button" class="montant-btn active" data-montant="10000" onclick="setMontant(this)">10 000</button>
+            <button type="button" class="montant-btn" data-montant="25000" onclick="setMontant(this)">25 000</button>
+            <button type="button" class="montant-btn" data-montant="50000" onclick="setMontant(this)">50 000</button>
+          </div>
+
+          <div class="form-group">
+            <label>Montant personnalisé</label>
+            <input type="number" id="montant-display" value="25" min="1" placeholder="Ex: 30"
+                   oninput="document.getElementById('montant-hidden').value=this.value;updateLabels()" />
+          </div>
+          <div class="form-group">
+            <label>Nom (facultatif)</label>
+            <input type="text" id="nom-input" placeholder="Votre nom" />
+          </div>
+          <div class="form-group">
+            <label>E-mail (pour reçu)</label>
+            <input type="email" id="email-input" placeholder="votre@email.com" />
+          </div>
+        </div>
+
+        <!-- IMPACT CE DON -->
+        <div class="impact-card reveal" style="margin-top:1.25rem">
+          <h3 style="font-family:var(--font-head);color:var(--green);margin-bottom:1rem;font-size:.95rem">
+            <i class="fa-solid fa-seedling"></i> Avec votre don de <span class="montant-label" style="font-size:1.1rem">25 €</span>
+          </h3>
+          <div class="impact-row">
+            <div class="impact-row-icon"><i class="fa-solid fa-book-open"></i></div>
+            <div>
+              <strong style="font-size:.88rem">Éducation</strong>
+              <p style="font-size:.78rem;color:var(--text-muted);margin:0">Fournitures scolaires pour un élève de Koungheul</p>
+            </div>
+          </div>
+          <div class="impact-row">
+            <div class="impact-row-icon"><i class="fa-solid fa-hospital"></i></div>
+            <div>
+              <strong style="font-size:.88rem">Santé</strong>
+              <p style="font-size:.78rem;color:var(--text-muted);margin:0">Contribution à une consultation médicale</p>
+            </div>
+          </div>
+          <div class="impact-row">
+            <div class="impact-row-icon"><i class="fa-solid fa-seedling"></i></div>
+            <div>
+              <strong style="font-size:.88rem">Agriculture</strong>
+              <p style="font-size:.78rem;color:var(--text-muted);margin:0">Semences pour une famille d'agriculteurs</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLONNE DROITE : paiement -->
+      <div class="reveal">
+        <h2 style="font-family:var(--font-head);margin-bottom:1.25rem">
+          <i class="fa-solid fa-shield-halved" style="color:var(--green);margin-right:.5rem"></i>
+          Choisissez votre moyen de paiement
+        </h2>
+
+        <!-- CARTE BANCAIRE -->
+        <div class="paiement-card">
+          <div class="paiement-header" onclick="toggleBloc('carte')">
+            <div class="paiement-icon" style="background:#d1fae5;color:#065f46">
+              <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <div>
+              <strong>Carte bancaire</strong>
+              <p>Visa, Mastercard — paiement sécurisé Stripe</p>
+            </div>
+            <i class="fa-solid fa-chevron-down paiement-chevron" id="chevron-carte"></i>
+          </div>
+          <div class="paiement-body" id="body-carte">
+            <form method="POST" action="{{ url_for('don') }}" id="form-carte">
+              <input type="hidden" name="methode" value="carte">
+              <input type="hidden" name="devise" id="devise-carte" value="EUR">
+              <input type="hidden" name="montant" id="montant-hidden" value="25">
+              <input type="hidden" name="nom" id="nom-carte">
+              <input type="hidden" name="email" id="email-carte">
+              <button type="submit" class="btn-paiement" style="background:var(--green)"
+                      onclick="syncForm()">
+                <i class="fa-solid fa-lock"></i>
+                Payer par carte — <span class="montant-label">25 €</span>
+              </button>
+            </form>
+            <div class="securite-badge">
+              <i class="fa-solid fa-shield-halved" style="color:var(--green)"></i>
+              Chiffrement SSL 256 bits — Powered by Stripe
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYPAL -->
+        <div class="paiement-card">
+          <div class="paiement-header" onclick="toggleBloc('paypal')">
+            <div class="paiement-icon" style="background:#003087;color:#fff">
+              <i class="fa-brands fa-paypal"></i>
+            </div>
+            <div>
+              <strong>PayPal</strong>
+              <p>Compte PayPal ou carte via PayPal</p>
+            </div>
+            <i class="fa-solid fa-chevron-down paiement-chevron" id="chevron-paypal"></i>
+          </div>
+          <div class="paiement-body" id="body-paypal" style="display:none">
+            <form action="https://www.paypal.com/donate" method="POST" target="_blank">
+              <input type="hidden" name="business" value="YOUR_PAYPAL_EMAIL">
+              <input type="hidden" name="item_name" value="Don AKF – Association des Koungheulois de France">
+              <input type="hidden" name="currency_code" value="EUR">
+              <input type="hidden" name="amount" id="montant-paypal" value="25">
+              <input type="hidden" name="return" value="{{ request.host_url }}don/success">
+              <input type="hidden" name="cancel_return" value="{{ request.host_url }}don">
+              <button type="submit" class="btn-paiement" style="background:#003087;animation:none"
+                      onclick="document.getElementById('montant-paypal').value=document.getElementById('montant-display').value">
+                <i class="fa-brands fa-paypal"></i>
+                Donner via PayPal — <span class="montant-label">25 €</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- WAVE -->
+        <div class="paiement-card">
+          <div class="paiement-header" onclick="toggleBloc('wave')">
+            <div class="paiement-icon" style="background:#e0f7ff;color:#0099cc">
+              <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
+            <div>
+              <strong>Wave</strong>
+              <p>Mobile Money — Sénégal & Afrique de l'Ouest</p>
+            </div>
+            <i class="fa-solid fa-chevron-down paiement-chevron" id="chevron-wave"></i>
+          </div>
+          <div class="paiement-body" id="body-wave" style="display:none">
+            <div class="wave-instructions">
+              <div class="wave-step">
+                <div class="wave-step-num">1</div>
+                <p>Ouvrez l'application <strong>Wave</strong> sur votre téléphone</p>
+              </div>
+              <div class="wave-step">
+                <div class="wave-step-num">2</div>
+                <p>Faites un envoi d'argent au numéro :</p>
+              </div>
+              <div class="wave-numero">
+                <i class="fa-solid fa-phone"></i>
+                <strong>+221 XX XXX XX XX</strong>
+              </div>
+              <div class="wave-step">
+                <div class="wave-step-num">3</div>
+                <p>Dans le message, indiquez <strong>"Don AKF"</strong> et votre nom</p>
+              </div>
+              <div class="wave-step">
+                <div class="wave-step-num">4</div>
+                <p>Envoyez-nous la confirmation à <a href="mailto:{{ asso.email }}" style="color:var(--green)">{{ asso.email }}</a></p>
+              </div>
+            </div>
+            <a href="https://www.wave.com" target="_blank" class="btn-paiement"
+               style="background:#0099cc;text-decoration:none;animation:none">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              Ouvrir Wave
+            </a>
+          </div>
+        </div>
+
+        <!-- VIREMENT -->
+        <div class="paiement-card">
+          <div class="paiement-header" onclick="toggleBloc('virement')">
+            <div class="paiement-icon" style="background:#ede9fe;color:#7c3aed">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div>
+              <strong>Virement bancaire</strong>
+              <p>Virement SEPA depuis votre banque</p>
+            </div>
+            <i class="fa-solid fa-chevron-down paiement-chevron" id="chevron-virement"></i>
+          </div>
+          <div class="paiement-body" id="body-virement" style="display:none">
+            <div class="rib-card">
+              <div class="rib-row"><span>Bénéficiaire</span><strong>{{ asso.nom }}</strong></div>
+              <div class="rib-row"><span>IBAN</span><strong>FR76 XXXX XXXX XXXX XXXX XXXX XXX</strong></div>
+              <div class="rib-row"><span>BIC</span><strong>XXXXXXXX</strong></div>
+              <div class="rib-row"><span>Référence</span><strong>DON AKF 2026</strong></div>
+            </div>
+            <p style="font-size:.8rem;color:var(--text-muted);margin-top:1rem">
+              <i class="fa-solid fa-circle-info" style="color:var(--green)"></i>
+              Après votre virement, contactez-nous à
+              <a href="mailto:{{ asso.email }}" style="color:var(--green)">{{ asso.email }}</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- CONFIANCE -->
+        <div style="display:flex;gap:1.25rem;justify-content:center;margin-top:1rem;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--text-muted)">
+            <i class="fa-solid fa-shield-halved" style="color:var(--green)"></i> Paiement sécurisé
+          </div>
+          <div style="display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--text-muted)">
+            <i class="fa-solid fa-file-invoice" style="color:var(--green)"></i> Reçu fiscal disponible
+          </div>
+          <div style="display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--text-muted)">
+            <i class="fa-solid fa-heart" style="color:var(--green)"></i> Don 100% terrain
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+let deviseActive = 'EUR';
+
+function setDevise(btn) {
+  document.querySelectorAll('.devise-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  deviseActive = btn.dataset.devise;
+  document.getElementById('montants-eur').style.display  = deviseActive === 'EUR'  ? 'grid' : 'none';
+  document.getElementById('montants-fcfa').style.display = deviseActive === 'FCFA' ? 'grid' : 'none';
+  document.getElementById('devise-carte').value = deviseActive;
+  updateLabels();
+}
+
+function setMontant(btn) {
+  document.querySelectorAll('.montant-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('montant-display').value = btn.dataset.montant;
+  document.getElementById('montant-hidden').value  = btn.dataset.montant;
+  updateLabels();
+}
+
+function updateLabels() {
+  const m   = document.getElementById('montant-display').value;
+  const sym = deviseActive === 'EUR' ? ' €' : ' FCFA';
+  document.querySelectorAll('.montant-label').forEach(el => el.textContent = m + sym);
+}
+
+function syncForm() {
+  document.getElementById('nom-carte').value   = document.getElementById('nom-input').value;
+  document.getElementById('email-carte').value = document.getElementById('email-input').value;
+  document.getElementById('montant-hidden').value = document.getElementById('montant-display').value;
+}
+
+function toggleBloc(id) {
+  const body    = document.getElementById('body-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen  = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  chevron.classList.toggle('open', !isOpen);
+}
+
+document.getElementById('montant-display').addEventListener('input', function() {
+  document.getElementById('montant-hidden').value = this.value;
+  updateLabels();
+});
+</script>
+{% endblock %}
