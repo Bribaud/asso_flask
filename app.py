@@ -1081,93 +1081,83 @@ def admin_cotisations_email_selection(mois, annee):
 
 # ── INIT DB ───────────────────────────────────────────────────────────────────
 
+def seed_db():
+    """Peuplement initial — ne s'exécute qu'une seule fois (quand admin absent)."""
+    a = AdminUser(username="admin"); a.set_password("akf2026")
+    db.session.add(a); db.session.commit()
+
+    if MembreBureau.query.count() == 0:
+        for nom, poste, photo, ordre in [
+            ("Mamadou Moustapha Mané","Président","mane.jpg",0),
+            ("Pape Semou NDAO","Secrétaire Général","pape.jpg",1),
+            ("Cheikh Willane","Chargé des projets","cheikh.jpg",2),
+            ("Idrissa NDAO","Trésorier","idrissa.jpg",3),
+            ("Ndeye Awa SY","Trésorière","awa.jpg",4),
+            ("Ngoye Mboup","Partenariats","ngoye.jpg",5),
+            ("Yangué Barro","Communication","yangue.jpg",6),
+            ("Aliou Sow","Communication","aliou.jpg",7),
+        ]:
+            db.session.add(MembreBureau(nom=nom, poste=poste, photo=photo, ordre=ordre))
+        db.session.commit()
+
+    if Projet.query.count() == 0:
+        for t,c,d,s in [
+            ("Soutien à l'éducation à Koungheul","ÉDUCATION","Accompagner les élèves de Koungheul pour une rentrée scolaire digne.","soutien-education-koungheul"),
+            ("Aide sanitaire et médicale","SANTÉ","Financement de consultations médicales.","aide-sanitaire-medicale"),
+            ("Développement économique local","ÉCONOMIQUE","Soutenir les initiatives locales, l'artisanat et l'agriculture.","developpement-economique-local"),
+            ("Solidarité et cohésion sociale","SOCIALE","Renforcer les liens entre la diaspora et Koungheul.","solidarite-cohesion-sociale"),
+        ]:
+            db.session.add(Projet(titre=t, categorie=c, description=d, slug=s))
+        db.session.commit()
+
+    if Actualite.query.count() == 0:
+        for t,c,e,s in [
+            ("Création officielle de l'association","Événements","L'AKF a été officiellement créée lors d'une réunion fondatrice à Limoges.","creation-officielle-association"),
+            ("Publication au Journal Officiel","Administratif","Déclaration publiée au Journal Officiel (annonce n°2578 du 28 avril 2026).","publication-journal-officiel"),
+            ("Lancement de nos premiers projets","Projets","Le bureau se mobilise pour préparer les premiers projets concrets.","lancement-premiers-projets"),
+        ]:
+            db.session.add(Actualite(titre=t, categorie=c, extrait=e, slug=s))
+        db.session.commit()
+
+    if Adhesion.query.count() == 0:
+        try:
+            import pandas as pd
+            f = "Formulaire_sans_titdatare__réponses___1_.xlsx"
+            if os.path.exists(f):
+                df = pd.read_excel(f); importes = 0
+                for _, row in df.iterrows():
+                    nc = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
+                    vl = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
+                    tl = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
+                    em = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else ""
+                    sx = str(row.iloc[6]).strip() if pd.notna(row.iloc[6]) else ""
+                    mo = str(row.iloc[8]).strip() if pd.notna(row.iloc[8]) else ""
+                    if not em or em == "nan": continue
+                    if Adhesion.query.filter_by(email=em).first(): continue
+                    parts = nc.split(); pr = parts[0] if parts else nc; no = " ".join(parts[1:]) if len(parts) >= 2 else ""
+                    try:
+                        if 'E' in tl.upper(): tl = str(int(float(tl)))
+                    except: pass
+                    cv = "Mme" if "femme" in sx.lower() or "féminin" in sx.lower() else "M."
+                    db.session.add(Adhesion(civilite=cv, prenom=pr or nc, nom=no, email=em,
+                                             telephone=tl[:50], ville=vl, pays="France",
+                                             type_adhesion="membre_actif",
+                                             motivation=mo[:2000] if mo and mo != "nan" else "",
+                                             statut="actif"))
+                    importes += 1
+                db.session.commit(); print(f"✅ {importes} adhérents importés")
+        except Exception as e:
+            print(f"⚠️ Import Excel : {e}")
+
+
 def init_db():
     with app.app_context():
         db.create_all()
-        try:
-            from sqlalchemy import text, inspect
-            inspector = inspect(db.engine)
-            if inspector.has_table('cotisation'):
-                colonnes = [c['name'] for c in inspector.get_columns('cotisation')]
-                with db.engine.connect() as conn:
-                    for col, sql in [
-                        ("justificatif",   "ALTER TABLE cotisation ADD COLUMN justificatif VARCHAR(200)"),
-                        ("rappel1_envoye", "ALTER TABLE cotisation ADD COLUMN rappel1_envoye BOOLEAN DEFAULT false"),
-                        ("rappel2_envoye", "ALTER TABLE cotisation ADD COLUMN rappel2_envoye BOOLEAN DEFAULT false"),
-                        ("alerte_envoye",  "ALTER TABLE cotisation ADD COLUMN alerte_envoye BOOLEAN DEFAULT false"),
-                    ]:
-                        if col not in colonnes:
-                            try: conn.execute(text(sql)); conn.commit(); print(f"✅ Colonne '{col}' ajoutée")
-                            except Exception as e: print(f"⚠️ {col}: {e}")
-        except Exception as e:
-            print(f"⚠️ Migration ignorée : {e}")
-
+        # seed_db uniquement si l'admin n'existe pas encore (première installation)
         if not AdminUser.query.filter_by(username="admin").first():
-            a = AdminUser(username="admin"); a.set_password("akf2026")
-            db.session.add(a); db.session.commit(); print("✅ Admin créé")
+            try: seed_db()
+            except Exception as e: print(f"⚠️ Seeding : {e}")
 
-        if MembreBureau.query.count() == 0:
-            for nom, poste, photo, ordre in [
-                ("Mamadou Moustapha Mané","Président","mane.jpg",0),
-                ("Pape Semou NDAO","Secrétaire Général","pape.jpg",1),
-                ("Cheikh Willane","Chargé des projets","cheikh.jpg",2),
-                ("Idrissa NDAO","Trésorier","idrissa.jpg",3),
-                ("Ndeye Awa SY","Trésorière","awa.jpg",4),
-                ("Ngoye Mboup","Partenariats","ngoye.jpg",5),
-                ("Yangué Barro","Communication","yangue.jpg",6),
-                ("Aliou Sow","Communication","aliou.jpg",7),
-            ]:
-                db.session.add(MembreBureau(nom=nom, poste=poste, photo=photo, ordre=ordre))
-            db.session.commit()
-
-        if Projet.query.count() == 0:
-            for t,c,d,s in [
-                ("Soutien à l'éducation à Koungheul","ÉDUCATION","Accompagner les élèves de Koungheul pour une rentrée scolaire digne.","soutien-education-koungheul"),
-                ("Aide sanitaire et médicale","SANTÉ","Financement de consultations médicales.","aide-sanitaire-medicale"),
-                ("Développement économique local","ÉCONOMIQUE","Soutenir les initiatives locales, l'artisanat et l'agriculture.","developpement-economique-local"),
-                ("Solidarité et cohésion sociale","SOCIALE","Renforcer les liens entre la diaspora et Koungheul.","solidarite-cohesion-sociale"),
-            ]:
-                db.session.add(Projet(titre=t, categorie=c, description=d, slug=s))
-            db.session.commit()
-
-        if Actualite.query.count() == 0:
-            for t,c,e,s in [
-                ("Création officielle de l'association","Événements","L'AKF a été officiellement créée lors d'une réunion fondatrice à Limoges.","creation-officielle-association"),
-                ("Publication au Journal Officiel","Administratif","Déclaration publiée au Journal Officiel (annonce n°2578 du 28 avril 2026).","publication-journal-officiel"),
-                ("Lancement de nos premiers projets","Projets","Le bureau se mobilise pour préparer les premiers projets concrets.","lancement-premiers-projets"),
-            ]:
-                db.session.add(Actualite(titre=t, categorie=c, extrait=e, slug=s))
-            db.session.commit()
-
-        if Adhesion.query.count() == 0:
-            try:
-                import pandas as pd
-                f = "Formulaire_sans_titdatare__réponses___1_.xlsx"
-                if os.path.exists(f):
-                    df = pd.read_excel(f); importes = 0
-                    for _, row in df.iterrows():
-                        nc = str(row.iloc[1]).strip() if pd.notna(row.iloc[1]) else ""
-                        vl = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
-                        tl = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
-                        em = str(row.iloc[4]).strip() if pd.notna(row.iloc[4]) else ""
-                        sx = str(row.iloc[6]).strip() if pd.notna(row.iloc[6]) else ""
-                        mo = str(row.iloc[8]).strip() if pd.notna(row.iloc[8]) else ""
-                        if not em or em == "nan": continue
-                        if Adhesion.query.filter_by(email=em).first(): continue
-                        parts = nc.split(); pr = parts[0] if parts else nc; no = " ".join(parts[1:]) if len(parts) >= 2 else ""
-                        try:
-                            if 'E' in tl.upper(): tl = str(int(float(tl)))
-                        except: pass
-                        cv = "Mme" if "femme" in sx.lower() or "féminin" in sx.lower() else "M."
-                        db.session.add(Adhesion(civilite=cv, prenom=pr or nc, nom=no, email=em,
-                                                 telephone=tl[:50], ville=vl, pays="France",
-                                                 type_adhesion="membre_actif",
-                                                 motivation=mo[:2000] if mo and mo != "nan" else "",
-                                                 statut="actif"))
-                        importes += 1
-                    db.session.commit(); print(f"✅ {importes} adhérents importés")
-            except Exception as e:
-                print(f"⚠️ Import Excel : {e}")
 
 if __name__ == "__main__":
     init_db()
