@@ -315,10 +315,10 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         draw.text((text_x, text_y), text.upper(), fill="white", font=font_nom)
 
     # ── Boîte NOM ─────────────────────────────────────────────────────────────
-    fill_box_and_write(0.069, 0.500, 0.505, 0.613, nom)
+    fill_box_and_write(0.069, 0.515, 0.505, 0.598, nom)
 
     # ── Boîte PRENOM ──────────────────────────────────────────────────────────
-    fill_box_and_write(0.069, 0.626, 0.505, 0.737, prenom)
+    fill_box_and_write(0.069, 0.641, 0.505, 0.722, prenom)
 
     # ── Matricule (couvrir le texte template puis réécrire) ───────────────────
     mat_x  = int(w * 0.069)
