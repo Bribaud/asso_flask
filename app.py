@@ -300,9 +300,7 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         """Échantillonne la couleur au centre de la boîte, remplit, écrit le texte en blanc."""
         x1, y1 = int(w * left_pct),  int(h * top_pct)
         x2, y2 = int(w * right_pct), int(h * bot_pct)
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        box_color = img.getpixel((cx, cy))[:3]
-        draw.rectangle([x1, y1, x2, y2], fill=box_color)
+        draw.rectangle([x1, y1, x2, y2], fill=(25, 43, 90))  # #192B5A
         text_x = x1 + int(w * 0.012)
         text_h  = int(h * 0.052)
         text_y  = y1 + (y2 - y1 - text_h) // 2
