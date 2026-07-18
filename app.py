@@ -297,22 +297,21 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         font_mat = ImageFont.load_default(size=int(h * 0.032))
 
     def fill_box_and_write(left_pct, top_pct, right_pct, bot_pct, text):
-        """Remplit la boîte avec la couleur du titre 'CARTE MEMBRE' et écrit le texte en blanc."""
+        """Échantillonne la couleur au centre de la boîte, remplit, écrit le texte en blanc."""
         x1, y1 = int(w * left_pct),  int(h * top_pct)
         x2, y2 = int(w * right_pct), int(h * bot_pct)
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        box_color = img.getpixel((cx, cy))[:3]
         draw.rectangle([x1, y1, x2, y2], fill=box_color)
         text_x = x1 + int(w * 0.012)
         text_h  = int(h * 0.052)
         text_y  = y1 + (y2 - y1 - text_h) // 2
         draw.text((text_x, text_y), text.upper(), fill="white", font=font_nom)
 
-    # Couleur échantillonnée dans le texte "CARTE MEMBRE" (~24 % hauteur, 11 % largeur)
-    box_color = img.getpixel((int(w * 0.110), int(h * 0.240)))[:3]
-
-    # ── Boîte NOM (réduite : 50.3 % → 61.0 %) ────────────────────────────────
+    # ── Boîte NOM (50.3 % → 61.0 %) ──────────────────────────────────────────
     fill_box_and_write(0.069, 0.503, 0.505, 0.610, nom)
 
-    # ── Boîte PRENOM (réduite : 62.9 % → 73.3 %) ─────────────────────────────
+    # ── Boîte PRENOM (62.9 % → 73.3 %) ───────────────────────────────────────
     fill_box_and_write(0.069, 0.629, 0.505, 0.733, prenom)
 
     # ── Matricule (couvrir le texte template puis réécrire) ───────────────────
