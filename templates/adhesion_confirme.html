@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Adhésion enregistrée – {{ asso.nom }}{% endblock %}
+
+{% block content %}
+<section style="min-height:70vh;display:flex;align-items:center;justify-content:center;
+                padding:4rem 1rem;background:linear-gradient(135deg,#f0faf4 0%,#e8f5e9 100%)">
+  <div style="max-width:580px;width:100%;text-align:center">
+
+    <!-- Icône -->
+    <div style="width:80px;height:80px;background:#1a7a4a;border-radius:50%;
+                display:flex;align-items:center;justify-content:center;
+                margin:0 auto 1.5rem;box-shadow:0 8px 24px rgba(26,122,74,.3)">
+      <i class="fa-solid fa-user-check" style="font-size:2rem;color:#fff"></i>
+    </div>
+
+    <h1 style="font-family:var(--font-head);color:#1a7a4a;margin-bottom:.5rem">
+      Adhésion enregistrée, {{ adh.prenom }} !
+    </h1>
+    <p style="color:var(--text-muted);font-size:1rem;margin-bottom:2rem">
+      Votre demande d'adhésion a bien été reçue et enregistrée.
+    </p>
+
+    <!-- Récapitulatif -->
+    <div style="background:#fff;border-radius:16px;padding:1.75rem;
+                box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:left;margin-bottom:2rem">
+      <h2 style="font-size:.95rem;color:#374151;margin-bottom:1rem;
+                 display:flex;align-items:center;gap:.5rem">
+        <i class="fa-solid fa-circle-info" style="color:#1a7a4a"></i>
+        Récapitulatif de votre inscription
+      </h2>
+      <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <tr>
+          <td style="padding:5px 0;color:#6b7280;width:140px">Nom complet</td>
+          <td><strong>{{ adh.prenom }} {{ adh.nom }}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#6b7280">Email</td>
+          <td>{{ adh.email }}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#6b7280">Type</td>
+          <td>{{ adh.type_adhesion | replace('_', ' ') | title }}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#6b7280">Statut</td>
+          <td><span style="background:#fef3c7;color:#92400e;padding:2px 8px;
+                           border-radius:4px;font-size:.8rem;font-weight:600">
+            En attente de paiement
+          </span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Option carte membre -->
+    <div style="background:#fff;border-radius:16px;padding:1.75rem;
+                box-shadow:0 4px 24px rgba(0,0,0,.08);margin-bottom:1.5rem">
+      <div style="display:flex;gap:1rem;align-items:flex-start;text-align:left;margin-bottom:1.25rem">
+        <div style="width:48px;height:48px;background:#f0faf4;border-radius:10px;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="fa-solid fa-id-card" style="color:#1a7a4a;font-size:1.2rem"></i>
+        </div>
+        <div>
+          <strong style="display:block;margin-bottom:.3rem">Obtenir votre carte de membre</strong>
+          <p style="margin:0;color:var(--text-muted);font-size:.88rem">
+            Recevez votre carte membre personnalisée par email avec votre numéro de matricule.
+            Cotisation : <strong>{{ montant_eur }} €</strong>
+          </p>
+        </div>
+      </div>
+
+      <form action="{{ url_for('adhesion_payer') }}" method="POST" style="margin-bottom:.75rem">
+        <button type="submit"
+                style="width:100%;background:#1a7a4a;color:#fff;border:none;
+                       padding:.9rem 1.5rem;border-radius:10px;font-size:1rem;
+                       font-weight:600;cursor:pointer;display:flex;align-items:center;
+                       justify-content:center;gap:.5rem">
+          <i class="fa-solid fa-credit-card"></i>
+          Payer {{ montant_eur }} € et recevoir ma carte
+        </button>
+      </form>
+
+      <a href="{{ url_for('index') }}"
+         style="display:block;text-align:center;color:var(--text-muted);
+                font-size:.85rem;text-decoration:none;padding:.5rem">
+        Non merci, je paierai ma cotisation plus tard
+      </a>
+    </div>
+
+    <p style="color:var(--text-muted);font-size:.8rem">
+      <i class="fa-solid fa-lock" style="margin-right:.3rem"></i>
+      Paiement sécurisé par Stripe
+    </p>
+
+  </div>
+</section>
+{% endblock %}

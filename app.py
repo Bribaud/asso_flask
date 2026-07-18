@@ -449,7 +449,7 @@ def adhesion():
         except Exception as _me:
             print(f"[adhesion] migration préventive : {_me}", flush=True)
 
-        # Sauvegarde en_attente (avant paiement)
+        # Sauvegarde en base
         adh = Adhesion(
             civilite=civilite, prenom=prenom, nom=nom, email=email,
             telephone=telephone, date_naissance=date_naissance,
@@ -466,45 +466,78 @@ def adhesion():
             flash("Erreur lors de la sauvegarde de votre adhésion. Veuillez réessayer.", "danger")
             return redirect(url_for("adhesion"))
 
-        # Détermination du montant Stripe
-        if etudiant == "oui":
-            montant = ADHESION_PRIX["etudiant"]
-            label   = "Adhésion étudiant – AKF"
-        elif type_adhesion == "membre_bienfaiteur":
-            montant = ADHESION_PRIX["membre_bienfaiteur"]
-            label   = "Adhésion membre bienfaiteur – AKF"
-        else:
-            montant = ADHESION_PRIX["membre_actif"]
-            label   = "Adhésion membre actif – AKF"
-
-        try:
-            checkout = stripe.checkout.Session.create(
-                payment_method_types=["card"],
-                line_items=[{
-                    "price_data": {
-                        "currency": "eur",
-                        "product_data": {"name": label, "description": f"{prenom} {nom}"},
-                        "unit_amount": montant,
-                    },
-                    "quantity": 1,
-                }],
-                mode="payment",
-                customer_email=email,
-                success_url=url_for("adhesion_success", _external=True) + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=url_for("adhesion_cancel", _external=True),
-                metadata={"adhesion_id": str(adh.id)},
-            )
-            adh.stripe_session_id = checkout.id
-            db.session.commit()
-            return redirect(checkout.url, code=303)
-        except Exception as e:
-            print(f"[Stripe] erreur : {e}")
-            db.session.delete(adh)
-            db.session.commit()
-            flash("Erreur lors de la création du paiement. Veuillez réessayer.", "danger")
-            return redirect(url_for("adhesion"))
+        # Stocker l'id en session Flask pour la page de confirmation
+        session["adhesion_pending_id"] = adh.id
+        return redirect(url_for("adhesion_confirme"))
 
     return render_template("adhesion.html", asso=ASSO, now=datetime.now())
+
+
+@app.route("/adhesion/confirme")
+def adhesion_confirme():
+    adhesion_id = session.get("adhesion_pending_id")
+    if not adhesion_id:
+        return redirect(url_for("adhesion"))
+    adh = Adhesion.query.filter_by(id=adhesion_id).first()
+    if not adh:
+        return redirect(url_for("adhesion"))
+    # Prix selon profil
+    if adh.etudiant == "oui":
+        montant_eur = ADHESION_PRIX["etudiant"] // 100
+    elif adh.type_adhesion == "membre_bienfaiteur":
+        montant_eur = ADHESION_PRIX["membre_bienfaiteur"] // 100
+    else:
+        montant_eur = ADHESION_PRIX["membre_actif"] // 100
+    return render_template("adhesion_confirme.html", asso=ASSO, adh=adh,
+                           montant_eur=montant_eur, now=datetime.now())
+
+
+@app.route("/adhesion/payer", methods=["POST"])
+def adhesion_payer():
+    adhesion_id = session.get("adhesion_pending_id")
+    if not adhesion_id:
+        flash("Session expirée. Veuillez recommencer.", "warning")
+        return redirect(url_for("adhesion"))
+
+    adh = Adhesion.query.filter_by(id=adhesion_id).first()
+    if not adh:
+        flash("Adhésion introuvable.", "danger")
+        return redirect(url_for("adhesion"))
+
+    if adh.etudiant == "oui":
+        montant = ADHESION_PRIX["etudiant"]
+        label   = "Adhésion étudiant – AKF"
+    elif adh.type_adhesion == "membre_bienfaiteur":
+        montant = ADHESION_PRIX["membre_bienfaiteur"]
+        label   = "Adhésion membre bienfaiteur – AKF"
+    else:
+        montant = ADHESION_PRIX["membre_actif"]
+        label   = "Adhésion membre actif – AKF"
+
+    try:
+        checkout = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {"name": label, "description": f"{adh.prenom} {adh.nom}"},
+                    "unit_amount": montant,
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            customer_email=adh.email,
+            success_url=url_for("adhesion_success", _external=True) + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=url_for("adhesion_confirme", _external=True),
+            metadata={"adhesion_id": str(adh.id)},
+        )
+        adh.stripe_session_id = checkout.id
+        db.session.commit()
+        return redirect(checkout.url, code=303)
+    except Exception as e:
+        print(f"[Stripe] erreur : {e}", flush=True)
+        flash("Erreur lors de la création du paiement. Veuillez réessayer.", "danger")
+        return redirect(url_for("adhesion_confirme"))
 
 
 @app.route("/adhesion/success")
