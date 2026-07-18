@@ -297,20 +297,28 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         font_mat = ImageFont.load_default(size=int(h * 0.032))
 
     def fill_box_and_write(left_pct, top_pct, right_pct, bot_pct, text):
-        """Échantillonne la couleur au centre de la boîte, remplit, écrit le texte en blanc."""
+        """Efface avec du blanc la zone originale, dessine notre boîte, écrit le texte."""
+        # 1. Blanc sur la zone élargie pour effacer la boîte template
+        wx1 = int(w * (left_pct - 0.010))
+        wy1 = int(h * (top_pct  - 0.015))
+        wx2 = int(w * (right_pct + 0.015))
+        wy2 = int(h * (bot_pct  + 0.015))
+        draw.rectangle([wx1, wy1, wx2, wy2], fill=(255, 255, 255))
+        # 2. Notre boîte #192B5A avec la taille exacte souhaitée
         x1, y1 = int(w * left_pct),  int(h * top_pct)
         x2, y2 = int(w * right_pct), int(h * bot_pct)
-        draw.rectangle([x1, y1, x2, y2], fill=(25, 43, 90))  # #192B5A
+        draw.rectangle([x1, y1, x2, y2], fill=(25, 43, 90))
+        # 3. Texte centré verticalement
         text_x = x1 + int(w * 0.012)
         text_h  = int(h * 0.052)
         text_y  = y1 + (y2 - y1 - text_h) // 2
         draw.text((text_x, text_y), text.upper(), fill="white", font=font_nom)
 
-    # ── Boîte NOM (50.3 % → 61.0 %) ──────────────────────────────────────────
-    fill_box_and_write(0.069, 0.498, 0.505, 0.615, nom)
+    # ── Boîte NOM ─────────────────────────────────────────────────────────────
+    fill_box_and_write(0.069, 0.500, 0.505, 0.613, nom)
 
-    # ── Boîte PRENOM (62.9 % → 73.3 %) ───────────────────────────────────────
-    fill_box_and_write(0.069, 0.624, 0.505, 0.738, prenom)
+    # ── Boîte PRENOM ──────────────────────────────────────────────────────────
+    fill_box_and_write(0.069, 0.626, 0.505, 0.737, prenom)
 
     # ── Matricule (couvrir le texte template puis réécrire) ───────────────────
     mat_x  = int(w * 0.069)
