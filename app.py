@@ -285,13 +285,16 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
     draw = ImageDraw.Draw(img)
     w, h = img.size  # 1748 × 1240
 
-    font_path = os.path.join("static", "fonts", "Montserrat.ttf")
+    font_path      = os.path.join("static", "fonts", "Montserrat.ttf")
+    font_path_bold = os.path.join("static", "fonts", "Montserrat-Bold.ttf")
     try:
-        font_nom = ImageFont.truetype(font_path, size=int(h * 0.050))
-        font_mat = ImageFont.truetype(font_path, size=int(h * 0.030))
+        font_nom = ImageFont.truetype(font_path_bold if os.path.exists(font_path_bold) else font_path,
+                                      size=int(h * 0.052))
+        font_mat = ImageFont.truetype(font_path_bold if os.path.exists(font_path_bold) else font_path,
+                                      size=int(h * 0.032))
     except Exception:
-        font_nom = ImageFont.load_default(size=int(h * 0.050))
-        font_mat = ImageFont.load_default(size=int(h * 0.030))
+        font_nom = ImageFont.load_default(size=int(h * 0.052))
+        font_mat = ImageFont.load_default(size=int(h * 0.032))
 
     def fill_box_and_write(left_pct, top_pct, right_pct, bot_pct, text):
         """Échantillonne la couleur de la boîte, la remplit entièrement, puis écrit le texte en blanc."""
@@ -304,15 +307,15 @@ def generate_carte_membre(prenom: str, nom: str, matricule: str) -> bytes:
         draw.rectangle([x1, y1, x2, y2], fill=box_color)
         # Texte centré verticalement, indenté horizontalement
         text_x = x1 + int(w * 0.012)
-        text_h  = int(h * 0.050)
+        text_h  = int(h * 0.052)
         text_y  = y1 + (y2 - y1 - text_h) // 2
         draw.text((text_x, text_y), text.upper(), fill="white", font=font_nom)
 
-    # ── Boîte NOM (51.3 % → 60.2 % hauteur, 6.9 % → 50.5 % largeur) ────────
-    fill_box_and_write(0.069, 0.513, 0.505, 0.602, nom)
+    # ── Boîte NOM (élargie : 49.8 % → 61.5 % hauteur) ─────────────────────
+    fill_box_and_write(0.069, 0.498, 0.505, 0.615, nom)
 
-    # ── Boîte PRENOM (63.9 % → 72.5 % hauteur) ───────────────────────────────
-    fill_box_and_write(0.069, 0.639, 0.505, 0.725, prenom)
+    # ── Boîte PRENOM (élargie : 62.4 % → 73.8 % hauteur) ────────────────────
+    fill_box_and_write(0.069, 0.624, 0.505, 0.738, prenom)
 
     # ── Matricule (couvrir le texte template puis réécrire) ───────────────────
     mat_x  = int(w * 0.069)
