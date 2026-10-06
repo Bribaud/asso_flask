@@ -1,0 +1,7 @@
+target-version = "py311"
+extend-exclude = ["venv", ".venv"]
+
+[lint]
+# Erreurs bloquantes uniquement : syntaxe, noms indéfinis, imports cassés.
+# On pourra durcir progressivement (ex. ajouter "F", "E", "B").
+select = ["E9", "F63", "F7", "F82"]
