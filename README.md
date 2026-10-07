@@ -69,3 +69,17 @@ Dans `static/css/style.css`, modifiez les variables CSS au début du fichier :
 - [ ] Intégrer Stripe pour les paiements
 - [ ] Ajouter un panneau d'administration (Flask-Admin)
 - [ ] Déployer sur PythonAnywhere ou Render
+
+## 💳 Stripe (production)
+
+Variables d'environnement à définir dans Vercel (Settings → Environment Variables) :
+
+| Variable | Rôle |
+|---|---|
+| `STRIPE_SECRET_KEY` | Clé secrète (`sk_test_…` en test, `sk_live_…` en production) |
+| `STRIPE_WEBHOOK_SECRET` | Secret de signature du webhook (`whsec_…`) |
+
+Webhook à créer dans le dashboard Stripe : URL `https://asso-flask.vercel.app/stripe/webhook`,
+événements `checkout.session.completed` et `checkout.session.async_payment_succeeded`.
+Le webhook active les adhésions (matricule + carte par e-mail) et passe les dons en « payé ».
+Les dons en FCFA sont convertis en euros (parité fixe 655,957) avant le paiement.

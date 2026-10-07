@@ -8,12 +8,12 @@ from datetime import datetime
 from functools import wraps
 from sqlalchemy.pool import NullPool
 from io import BytesIO
-import stripe, os, uuid
+import stripe, os, uuid, json
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "akf-super-secret-key-2026")
 
-stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "sk_test_51Tcme02YF5ue5EAIOSUxkRk5kPlVLYm0raGfb2OvN35tyJuxLNNZjU6ArE3kvDWHQNKrvUkh2xN36cAXveCZ8FFv007b5S3Iks")
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:////tmp/akf.db")
 if DATABASE_URL.startswith("postgres://"):
@@ -540,118 +540,83 @@ def adhesion_payer():
         return redirect(url_for("adhesion_confirme"))
 
 
+def activer_adhesion(adh):
+    """Active une adhésion payée et envoie la carte. Idempotent : l'UPDATE conditionnel
+    garantit qu'un seul appel (webhook ou page de succès) active et envoie les e-mails."""
+    n = Adhesion.query.filter_by(id=adh.id, statut="en_attente").update(
+        {"statut": "actif", "matricule": f"AKF-{adh.id:04d}"})
+    db.session.commit()
+    if not n:
+        return False
+    db.session.refresh(adh)
+    mat = adh.matricule
+    try:
+        carte = generate_carte_membre(adh.prenom, adh.nom, mat)
+        msg_m = MailMessage(subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
+                            recipients=[adh.email])
+        msg_m.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          {email_header()}
+          <div style="padding:30px;background:#fff">
+            <h2 style="color:#1a7a4a">Bienvenue dans l'AKF, {adh.prenom} !</h2>
+            <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
+              <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
+                  <td><strong>{mat}</strong></td></tr>
+              <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
+                  <td>{adh.prenom} {adh.nom}</td></tr>
+              <tr><td style="padding:5px 0;color:#6b7280">Type</td>
+                  <td>{adh.type_adhesion}</td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:.85rem">Conservez précieusement votre carte.</p>
+            {email_footer()}
+          </div>
+        </div>"""
+        msg_m.attach(f"carte_membre_{mat}.png", "image/png", carte)
+        notif = MailMessage(subject=f"[AKF] Nouvelle adhésion — {adh.prenom} {adh.nom}",
+                            recipients=[MAIL_NOTIFICATIONS])
+        notif.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          {email_header()}
+          <div style="padding:30px;background:#fff">
+            <p><strong>{adh.prenom} {adh.nom}</strong> a finalisé son adhésion (matricule <strong>{mat}</strong>).</p>
+            {email_footer()}
+          </div>
+        </div>"""
+        send_mail_safe(msg_m)
+        send_mail_safe(notif)
+    except Exception as e:
+        print(f"[carte/mail] {e}", flush=True)
+    return True
+
+
 @app.route("/adhesion/success")
 def adhesion_success():
+    session_id = request.args.get("session_id", "")
+    if not session_id:
+        return redirect(url_for("adhesion"))
     try:
-        session_id = request.args.get("session_id", "")
-        if not session_id:
-            return "<pre>ERREUR: session_id absent de l'URL</pre>", 400
-
-        # Étape 1 — récupération Stripe
-        try:
-            checkout = stripe.checkout.Session.retrieve(session_id)
-        except Exception as e:
-            msg = f"Stripe retrieve échoué:\n{e}\n\nClé utilisée: {stripe.api_key[:16]}..."
-            print(f"[adhesion/success] {msg}", flush=True)
-            return f"<pre style='color:red'>{msg}</pre>", 200
-
-        if checkout.payment_status != "paid":
-            return f"<pre>payment_status={checkout.payment_status!r} (attendu: 'paid')</pre>", 200
-
-        # Étape 2 — récupération adhésion
-        try:
-            # StripeObject v7 ne supporte pas .get() → utiliser ["key"]
-            adhesion_id_raw = checkout.metadata["adhesion_id"]
-            adhesion_id = int(adhesion_id_raw)
-            adh = Adhesion.query.filter_by(id=adhesion_id).first()
-        except (KeyError, AttributeError, TypeError) as e:
-            return f"<pre style='color:orange'>adhesion_id absent des métadonnées Stripe.\nmetadata={checkout.metadata!r}</pre>", 200
-        except Exception as e:
-            import traceback
-            msg = f"DB lookup échoué: {type(e).__name__}: {e}\n{traceback.format_exc()}"
-            print(f"[adhesion/success] {msg}", flush=True)
-            return f"<pre style='color:red'>{msg}</pre>", 200
-
-        if not adh:
-            return f"<pre>Adhésion id={adhesion_id} introuvable (metadata={dict(checkout.metadata)!r})</pre>", 200
-
-        # Étape 3 — activation
-        if adh.statut == "en_attente":
-            try:
-                adh.statut    = "actif"
-                adh.matricule = f"AKF-{adh.id:04d}"
-                db.session.commit()
-                # Forcer le rechargement après commit (expire_on_commit)
-                db.session.refresh(adh)
-            except Exception as e:
-                db.session.rollback()
-                print(f"[adhesion/success] commit: {e}", flush=True)
-                try:
-                    from sqlalchemy import text
-                    with db.engine.connect() as conn:
-                        conn.execute(text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS matricule VARCHAR(20)"))
-                        conn.execute(text("ALTER TABLE adhesion ADD COLUMN IF NOT EXISTS stripe_session_id VARCHAR(255)"))
-                        conn.execute(text("UPDATE adhesion SET statut='actif', matricule=:mat WHERE id=:id"),
-                                     {"mat": f"AKF-{adh.id:04d}", "id": adh.id})
-                        conn.commit()
-                    adh = Adhesion.query.filter_by(id=adh.id).first()
-                except Exception as e2:
-                    print(f"[adhesion/success] fallback SQL: {e2}", flush=True)
-
-            # Envoi carte
-            try:
-                mat   = adh.matricule or f"AKF-{adh.id:04d}"
-                carte = generate_carte_membre(adh.prenom, adh.nom, mat)
-                msg_m = MailMessage(subject=f"[AKF] Bienvenue {adh.prenom} ! Votre carte de membre",
-                                    recipients=[adh.email])
-                msg_m.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-                  {email_header()}
-                  <div style="padding:30px;background:#fff">
-                    <h2 style="color:#1a7a4a">Bienvenue dans l'AKF, {adh.prenom} !</h2>
-                    <p>Votre adhésion a été validée. Vous trouverez ci-joint votre carte de membre.</p>
-                    <table style="width:100%;border-collapse:collapse;font-size:.9rem;margin:16px 0">
-                      <tr><td style="padding:5px 0;color:#6b7280;width:140px">Matricule</td>
-                          <td><strong>{mat}</strong></td></tr>
-                      <tr><td style="padding:5px 0;color:#6b7280">Nom complet</td>
-                          <td>{adh.prenom} {adh.nom}</td></tr>
-                      <tr><td style="padding:5px 0;color:#6b7280">Type</td>
-                          <td>{adh.type_adhesion}</td></tr>
-                    </table>
-                    <p style="color:#6b7280;font-size:.85rem">Conservez précieusement votre carte.</p>
-                    {email_footer()}
-                  </div>
-                </div>"""
-                msg_m.attach(f"carte_membre_{mat}.png", "image/png", carte)
-                notif = MailMessage(subject=f"[AKF] Nouvelle adhésion — {adh.prenom} {adh.nom}",
-                                    recipients=[MAIL_NOTIFICATIONS])
-                notif.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-                  {email_header()}
-                  <div style="padding:30px;background:#fff">
-                    <p><strong>{adh.prenom} {adh.nom}</strong> a finalisé son adhésion (matricule <strong>{mat}</strong>).</p>
-                    {email_footer()}
-                  </div>
-                </div>"""
-                send_mail_safe(msg_m)
-                send_mail_safe(notif)
-            except Exception as e:
-                print(f"[carte/mail] {e}", flush=True)
-
-        # Snapshot des données avant fermeture session
-        ctx = {
-            "prenom":        adh.prenom,
-            "nom":           adh.nom,
-            "email":         adh.email,
-            "matricule":     adh.matricule or f"AKF-{adh.id:04d}",
-            "type_adhesion": adh.type_adhesion,
-            "statut":        adh.statut,
-        }
-        return render_template("adhesion_success.html", asso=ASSO, ctx=ctx, now=datetime.now())
-
+        checkout = stripe.checkout.Session.retrieve(session_id)
+        adh = None
+        if checkout.payment_status == "paid":
+            adh = db.session.get(Adhesion, int(checkout.metadata["adhesion_id"]))
     except Exception as e:
-        import traceback
-        err = traceback.format_exc()
-        print(f"[adhesion/success] EXCEPTION GLOBALE:\n{err}", flush=True)
-        return f"<pre style='color:red'>EXCEPTION GLOBALE:\n{err}</pre>", 200
+        print(f"[adhesion/success] {type(e).__name__}: {e}", flush=True)
+        adh = None
+    if not adh:
+        flash("Nous n'avons pas pu confirmer votre paiement. Si vous avez été débité, "
+              "contactez-nous : votre adhésion sera validée sous peu.", "warning")
+        return redirect(url_for("contact"))
+
+    # Le webhook Stripe est la source de vérité ; cet appel est un filet de sécurité
+    activer_adhesion(adh)
+    ctx = {
+        "prenom":        adh.prenom,
+        "nom":           adh.nom,
+        "email":         adh.email,
+        "matricule":     adh.matricule or f"AKF-{adh.id:04d}",
+        "type_adhesion": adh.type_adhesion,
+        "statut":        adh.statut,
+    }
+    return render_template("adhesion_success.html", asso=ASSO, ctx=ctx, now=datetime.now())
 
 
 @app.route("/adhesion/cancel")
@@ -660,52 +625,50 @@ def adhesion_cancel():
     return redirect(url_for("adhesion"))
 
 
-@app.route("/debug/stripe/<session_id>")
-def debug_stripe(session_id):
-    """Endpoint temporaire de diagnostic — à supprimer en production."""
-    result = {}
-    try:
-        checkout = stripe.checkout.Session.retrieve(session_id)
-        result["payment_status"] = checkout.payment_status
-        result["metadata"]       = dict(checkout.metadata._data) if hasattr(checkout.metadata, '_data') else {}
-        result["amount_total"]   = checkout.amount_total
-        result["stripe_key_prefix"] = stripe.api_key[:12] + "..."
-
-        adhesion_id = int(checkout.metadata["adhesion_id"])
-        adh = Adhesion.query.filter_by(id=adhesion_id).first()
-        result["adhesion_found"] = adh is not None
-        if adh:
-            result["adhesion_statut"]   = adh.statut
-            result["adhesion_matricule"] = adh.matricule
-    except Exception as e:
-        result["error"] = str(e)
-    return jsonify(result)
+TAUX_FCFA_EUR = 655.957   # parité fixe du franc CFA
+DON_MIN_EUR, DON_MAX_EUR = 1, 10000
 
 @app.route("/don", methods=["GET", "POST"])
 def don():
     if request.method == "POST":
-        montant  = request.form.get("montant", "25")
-        nom      = request.form.get("nom", "").strip()
-        email    = request.form.get("email", "").strip()
-        devise   = "EUR"
-        montant_centimes = int(float(montant) * 100)
-        checkout = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",
-            customer_email=email if email else None,
-            line_items=[{"price_data": {"currency": devise.lower(),
-                          "product_data": {"name": "Don à l'AKF"},
-                          "unit_amount": montant_centimes}, "quantity": 1}],
-            success_url=url_for("don_success", _external=True),
-            cancel_url=url_for("don", _external=True),
-        )
-        db.session.add(Don(nom=nom, email=email, montant=float(montant),
-                           devise=devise, stripe_session_id=checkout.id))
+        nom    = request.form.get("nom", "").strip()
+        email  = request.form.get("email", "").strip()
+        devise = request.form.get("devise", "EUR").strip().upper()
+        try:
+            montant = float(request.form.get("montant", "25").replace(",", "."))
+        except ValueError:
+            flash("Montant invalide.", "danger")
+            return redirect(url_for("don"))
+        # Stripe est facturé en euros : un don en FCFA est converti (parité fixe)
+        if devise == "FCFA":
+            montant_eur = round(montant / TAUX_FCFA_EUR, 2)
+        elif devise == "EUR":
+            montant_eur = round(montant, 2)
+        else:
+            flash("Devise non prise en charge.", "danger")
+            return redirect(url_for("don"))
+        if not (DON_MIN_EUR <= montant_eur <= DON_MAX_EUR):
+            flash(f"Le montant doit être compris entre {DON_MIN_EUR} € et {DON_MAX_EUR} €.", "danger")
+            return redirect(url_for("don"))
+        try:
+            checkout = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                mode="payment",
+                customer_email=email or None,
+                line_items=[{"price_data": {"currency": "eur",
+                              "product_data": {"name": "Don à l'AKF"},
+                              "unit_amount": int(round(montant_eur * 100))}, "quantity": 1}],
+                metadata={"type": "don"},
+                success_url=url_for("don_success", _external=True),
+                cancel_url=url_for("don", _external=True),
+            )
+        except Exception as e:
+            print(f"[Stripe] don : {type(e).__name__}: {e}", flush=True)
+            flash("Erreur lors de la création du paiement. Veuillez réessayer.", "danger")
+            return redirect(url_for("don"))
+        db.session.add(Don(nom=nom, email=email, montant=montant_eur,
+                           devise="EUR", stripe_session_id=checkout.id))
         db.session.commit()
-        msg = MailMessage(subject=f"[AKF] Nouveau don — {montant} {devise}",
-                          recipients=[MAIL_NOTIFICATIONS])
-        msg.body = f"Nom : {nom}\nEmail : {email}\nMontant : {montant} {devise}"
-        send_mail_safe(msg)
         return redirect(checkout.url, code=303)
     objectif         = 500
     montant_collecte = db.session.query(db.func.sum(Don.montant)).scalar() or 0
@@ -719,6 +682,42 @@ def don():
 def don_success():
     flash("Merci pour votre don. Votre paiement a bien été pris en compte.", "success")
     return redirect(url_for("index"))
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    """Confirmation serveur des paiements (source de vérité). Signature vérifiée."""
+    secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    if not secret:
+        return "webhook non configuré", 503
+    payload = request.get_data()
+    try:
+        stripe.Webhook.construct_event(payload, request.headers.get("Stripe-Signature", ""), secret)
+    except Exception:
+        return "signature invalide", 400
+
+    event = json.loads(payload)
+    if event.get("type") not in ("checkout.session.completed",
+                                 "checkout.session.async_payment_succeeded"):
+        return "", 200
+    obj = event["data"]["object"]
+    if obj.get("payment_status") != "paid":
+        return "", 200
+
+    metadata = obj.get("metadata") or {}
+    if metadata.get("adhesion_id"):
+        adh = db.session.get(Adhesion, int(metadata["adhesion_id"]))
+        if adh:
+            activer_adhesion(adh)
+    elif metadata.get("type") == "don":
+        d = Don.query.filter_by(stripe_session_id=obj["id"]).first()
+        if d and d.statut != "paye":
+            d.statut = "paye"
+            db.session.commit()
+            msg = MailMessage(subject=f"[AKF] Nouveau don — {d.montant:.2f} €",
+                              recipients=[MAIL_NOTIFICATIONS])
+            msg.body = f"Nom : {d.nom}\nEmail : {d.email}\nMontant : {d.montant:.2f} €"
+            send_mail_safe(msg)
+    return "", 200
 
 @app.route("/mentions-legales")
 def mentions_legales():
