@@ -170,3 +170,15 @@ def test_route_debug_supprimee(client):
 def test_pas_de_cle_stripe_en_dur():
     source = open("app.py", encoding="utf-8").read()
     assert "sk_test_" not in source and "sk_live_" not in source
+
+
+def test_checkout_sans_payment_method_types(client):
+    # L'API Stripe récente refuse ce paramètre (les moyens de paiement se règlent dans le dashboard)
+    _, create = _post_don(client, montant="10", devise="EUR")
+    assert "payment_method_types" not in create.call_args.kwargs
+
+    client.post("/adhesion", data={"prenom": "A", "nom": "B", "email": "a@b.fr"})
+    fake = type("S", (), {"id": "cs_x", "url": "https://stripe.test/pay"})()
+    with patch.object(app_module.stripe.checkout.Session, "create", return_value=fake) as create:
+        client.post("/adhesion/payer")
+    assert "payment_method_types" not in create.call_args.kwargs
