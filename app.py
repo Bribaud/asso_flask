@@ -1366,8 +1366,13 @@ def admin_cotisations_email_selection(mois, annee):
 
 def seed_db():
     """Peuplement initial — ne s'exécute qu'une seule fois (quand admin absent)."""
-    a = AdminUser(username="admin"); a.set_password("akf2026")
-    db.session.add(a); db.session.commit()
+    # Le mot de passe admin vient de l'environnement : aucun mot de passe par défaut
+    admin_pwd = os.environ.get("ADMIN_PASSWORD")
+    if admin_pwd:
+        a = AdminUser(username="admin"); a.set_password(admin_pwd)
+        db.session.add(a); db.session.commit()
+    else:
+        print("⚠️ ADMIN_PASSWORD non défini : aucun compte admin créé.", flush=True)
 
     if MembreBureau.query.count() == 0:
         for nom, poste, photo, ordre in [
@@ -1433,9 +1438,26 @@ def seed_db():
             print(f"⚠️ Import Excel : {e}")
 
 
+def activer_rls():
+    """Supabase expose le schéma public via une API REST : on active la RLS (sans politique)
+    pour que seule la connexion directe de l'application (propriétaire des tables) y accède."""
+    if db.engine.dialect.name != "postgresql":
+        return
+    from sqlalchemy import text
+    with db.engine.connect() as conn:
+        for table in db.metadata.tables:
+            try:
+                conn.execute(text(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY'))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                print(f"[rls] {table}: {e}", flush=True)
+
+
 def init_db():
     with app.app_context():
         db.create_all()
+        activer_rls()
         # Migration : ajout des nouvelles colonnes si absentes (PostgreSQL)
         try:
             from sqlalchemy import text

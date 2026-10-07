@@ -83,3 +83,15 @@ Webhook à créer dans le dashboard Stripe : URL `https://asso-flask.vercel.app/
 événements `checkout.session.completed` et `checkout.session.async_payment_succeeded`.
 Le webhook active les adhésions (matricule + carte par e-mail) et passe les dons en « payé ».
 Les dons en FCFA sont convertis en euros (parité fixe 655,957) avant le paiement.
+
+## 🗄️ Base de données (Supabase / PostgreSQL)
+
+| Variable | Rôle |
+|---|---|
+| `DATABASE_URL` | URI PostgreSQL. Sur Vercel, utiliser le **Transaction pooler** de Supabase (port 6543) |
+| `ADMIN_PASSWORD` | Mot de passe du compte `admin`, créé au premier démarrage sur une base vide |
+
+- Sans `DATABASE_URL`, l'application utilise un SQLite temporaire (`/tmp`) : **les données sont perdues** à chaque redémarrage.
+- Sans `ADMIN_PASSWORD`, aucun compte admin n'est créé (il n'y a plus de mot de passe par défaut).
+- La RLS Supabase est activée automatiquement sur toutes les tables au démarrage : l'API REST publique de Supabase n'y a pas accès, seule la connexion de l'application le peut.
+- En local : `ADMIN_PASSWORD=monmotdepasse python app.py` (PowerShell : `$env:ADMIN_PASSWORD="..."; python app.py`).
