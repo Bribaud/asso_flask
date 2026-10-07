@@ -15,9 +15,15 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "akf-super-secret-key-20
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:////tmp/akf.db")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+def normaliser_database_url(url):
+    """Force le pilote psycopg2. Depuis SQLAlchemy 2.1, « postgresql:// » désigne psycopg (v3),
+    qui n'est pas installé : on nomme explicitement le pilote du projet."""
+    for prefixe in ("postgres://", "postgresql://", "postgresql+psycopg://"):
+        if url.startswith(prefixe):
+            return "postgresql+psycopg2://" + url[len(prefixe):]
+    return url
+
+DATABASE_URL = normaliser_database_url(os.environ.get("DATABASE_URL", "sqlite:////tmp/akf.db"))
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # NullPool requis pour les environnements serverless (Vercel) avec PostgreSQL
