@@ -522,7 +522,6 @@ def adhesion_payer():
 
     try:
         checkout = stripe.checkout.Session.create(
-            payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "eur",
@@ -658,7 +657,6 @@ def don():
             return redirect(url_for("don"))
         try:
             checkout = stripe.checkout.Session.create(
-                payment_method_types=["card"],
                 mode="payment",
                 customer_email=email or None,
                 line_items=[{"price_data": {"currency": "eur",
