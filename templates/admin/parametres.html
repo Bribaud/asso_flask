@@ -171,6 +171,21 @@
       </div>
     </div>
 
+    <!-- TEST E-MAIL -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h2><i class="fa-solid fa-envelope-circle-check" style="color:var(--green);margin-right:.5rem"></i>E-mail de test</h2>
+      </div>
+      <div style="padding:1.5rem;font-size:.85rem;color:var(--text-muted);line-height:1.7">
+        <p style="margin-bottom:1rem">Envoie un e-mail de test pour vérifier que la configuration d'envoi fonctionne.</p>
+        <form method="POST" action="{{ url_for('admin_test_email') }}">
+          <button type="submit" class="btn btn-green" style="width:100%;justify-content:center">
+            <i class="fa-solid fa-paper-plane"></i> Envoyer un e-mail de test
+          </button>
+        </form>
+      </div>
+    </div>
+
     <!-- INFOS SÉCURITÉ -->
     <div class="table-card">
       <div class="table-card-header">

@@ -35,21 +35,29 @@ if DATABASE_URL.startswith("postgresql"):
 db = SQLAlchemy(app)
 
 # ── MAIL ──────────────────────────────────────────────────────────────────────
+MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "contact@koungheulois-france.fr")
 app.config["MAIL_SERVER"]         = os.environ.get("MAIL_SERVER", "smtp.mail.ovh.net")
-app.config["MAIL_PORT"]           = 465
-app.config["MAIL_USE_TLS"]        = False
-app.config["MAIL_USE_SSL"]        = True
-app.config["MAIL_USERNAME"]       = os.environ.get("MAIL_USERNAME", "contact@koungheulois-france.fr")
-app.config["MAIL_PASSWORD"]       = os.environ.get("MAIL_PASSWORD", "@Akf202626")
-app.config["MAIL_DEFAULT_SENDER"] = ("AKF", "contact@koungheulois-france.fr")
+app.config["MAIL_PORT"]           = int(os.environ.get("MAIL_PORT", 465))
+app.config["MAIL_USE_SSL"]        = app.config["MAIL_PORT"] == 465   # SSL direct (465)
+app.config["MAIL_USE_TLS"]        = not app.config["MAIL_USE_SSL"]   # sinon STARTTLS (587)
+app.config["MAIL_USERNAME"]       = MAIL_USERNAME
+app.config["MAIL_PASSWORD"]       = os.environ.get("MAIL_PASSWORD")  # jamais dans le code
+app.config["MAIL_DEFAULT_SENDER"] = ("AKF", os.environ.get("MAIL_SENDER", MAIL_USERNAME))
 app.config["MAIL_TIMEOUT"]        = 10
 mail = Mail(app)
 
 def send_mail_safe(msg):
+    """Envoie un e-mail sans jamais faire échouer la requête. Retourne True si envoyé ;
+    en cas d'échec, la cause est écrite dans les journaux."""
+    if not app.config.get("MAIL_PASSWORD"):
+        print("[mail] MAIL_PASSWORD non défini : e-mail non envoyé", flush=True)
+        return False
     try:
         mail.send(msg)
-    except (Exception, SystemExit, BaseException):
-        pass
+        return True
+    except (Exception, SystemExit) as e:
+        print(f"[mail] échec ({msg.subject!r} -> {msg.recipients}) : {type(e).__name__}: {e}", flush=True)
+        return False
 
 # ── UPLOAD ────────────────────────────────────────────────────────────────────
 # Sur Vercel le filesystem est en lecture seule → on utilise /tmp
@@ -823,6 +831,24 @@ def admin_supprimer_admin(id):
         flash(f"Compte '{a.username}' supprimé.", "success")
     return redirect(url_for("admin_parametres"))
 
+@app.route("/admin/parametres/test-email", methods=["POST"])
+@login_required
+def admin_test_email():
+    msg = MailMessage(subject="[AKF] E-mail de test", recipients=[MAIL_NOTIFICATIONS])
+    msg.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+      {email_header()}
+      <div style="padding:30px;background:#fff">
+        <p>La configuration d'envoi d'e-mails fonctionne.</p>
+        {email_footer()}
+      </div>
+    </div>"""
+    if send_mail_safe(msg):
+        flash(f"E-mail de test envoyé à {MAIL_NOTIFICATIONS}.", "success")
+    else:
+        flash("Échec de l'envoi. Vérifiez MAIL_PASSWORD et MAIL_USERNAME dans Vercel, "
+              "puis consultez les journaux.", "danger")
+    return redirect(url_for("admin_parametres"))
+
 # ── ADMIN DASHBOARD ───────────────────────────────────────────────────────────
 
 @app.route("/admin")
@@ -1128,7 +1154,9 @@ def admin_envoyer_email():
                     </div>""")
                 if pj_data and pj_nom: msg.attach(pj_nom, "application/octet-stream", pj_data)
                 mail.send(msg); envoyes += 1
-            except (Exception, SystemExit, BaseException): erreurs += 1
+            except (Exception, SystemExit) as e:
+                erreurs += 1
+                print(f"[mail] échec envoi à {a.email} : {type(e).__name__}: {e}", flush=True)
 
         if envoyes > 0:
             flash(f"Email envoyé à {envoyes} membre(s)." + (f" {erreurs} échec(s)." if erreurs else ""), "success")

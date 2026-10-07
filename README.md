@@ -95,3 +95,18 @@ Les dons en FCFA sont convertis en euros (parité fixe 655,957) avant le paiemen
 - Sans `ADMIN_PASSWORD`, aucun compte admin n'est créé (il n'y a plus de mot de passe par défaut).
 - La RLS Supabase est activée automatiquement sur toutes les tables au démarrage : l'API REST publique de Supabase n'y a pas accès, seule la connexion de l'application le peut.
 - En local : `ADMIN_PASSWORD=monmotdepasse python app.py` (PowerShell : `$env:ADMIN_PASSWORD="..."; python app.py`).
+
+## ✉️ E-mails
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `MAIL_PASSWORD` | Mot de passe de la boîte d'envoi (**obligatoire**, jamais dans le code) | — |
+| `MAIL_USERNAME` | Adresse d'envoi | `contact@koungheulois-france.fr` |
+| `MAIL_SERVER` | Serveur SMTP | `smtp.mail.ovh.net` |
+| `MAIL_PORT` | `465` (SSL) ou `587` (STARTTLS) | `465` |
+| `MAIL_SENDER` | Adresse affichée comme expéditeur | `MAIL_USERNAME` |
+| `MAIL_NOTIFICATIONS` | Destinataire des notifications (adhésions, dons, contact) | voir `app.py` |
+
+- Sans `MAIL_PASSWORD`, aucun e-mail n'est envoyé (un message est écrit dans les journaux).
+- Les échecs d'envoi sont écrits dans les journaux Vercel avec le préfixe `[mail]`.
+- Admin → Paramètres → « Envoyer un e-mail de test » vérifie la configuration (envoi à `MAIL_NOTIFICATIONS`).
