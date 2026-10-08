@@ -182,3 +182,73 @@ def test_checkout_sans_payment_method_types(client):
     with patch.object(app_module.stripe.checkout.Session, "create", return_value=fake) as create:
         client.post("/adhesion/payer")
     assert "payment_method_types" not in create.call_args.kwargs
+
+
+# ── Don : coordonnées saisies chez Stripe et remerciement ───────────────────
+
+def _don_paye_event(session_id="cs_don", details=None):
+    obj = {"id": session_id, "payment_status": "paid", "metadata": {"type": "don"}}
+    if details is not None:
+        obj["customer_details"] = details
+    return _event(obj)
+
+
+def test_webhook_don_recupere_coordonnees_stripe_et_remercie(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WEBHOOK_SECRET)
+    # Le donateur n'a rien saisi sur le site, tout a été saisi chez Stripe
+    db.session.add(Don(nom="", email="", montant=100.0, stripe_session_id="cs_don"))
+    db.session.commit()
+    body, headers = _signed(_don_paye_event(details={"email": "awa@example.com", "name": "Awa Sy"}))
+    with app_module.mail.record_messages() as outbox:
+        assert client.post("/stripe/webhook", data=body, headers=headers).status_code == 200
+
+    don = Don.query.one()
+    assert (don.statut, don.nom, don.email) == ("paye", "Awa Sy", "awa@example.com")
+    assert len(outbox) == 2
+    notif = next(m for m in outbox if m.recipients == [app_module.MAIL_NOTIFICATIONS])
+    assert "Awa Sy" in notif.body and "awa@example.com" in notif.body and "100.00" in notif.body
+    merci = next(m for m in outbox if m.recipients == ["awa@example.com"])
+    assert "Merci" in merci.subject and "100.00" in merci.html and "Awa Sy" in merci.html
+
+
+def test_webhook_don_garde_les_coordonnees_du_site(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WEBHOOK_SECRET)
+    db.session.add(Don(nom="Moussa", email="moussa@example.com", montant=10.0, stripe_session_id="cs_don"))
+    db.session.commit()
+    body, headers = _signed(_don_paye_event(details={"email": "autre@example.com", "name": "Autre"}))
+    with app_module.mail.record_messages():
+        client.post("/stripe/webhook", data=body, headers=headers)
+    don = Don.query.one()
+    assert (don.nom, don.email) == ("Moussa", "moussa@example.com")
+
+
+def test_webhook_don_sans_email_notifie_sans_remercier(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WEBHOOK_SECRET)
+    db.session.add(Don(nom="", email="", montant=5.0, stripe_session_id="cs_don"))
+    db.session.commit()
+    body, headers = _signed(_don_paye_event(details={}))
+    with app_module.mail.record_messages() as outbox:
+        client.post("/stripe/webhook", data=body, headers=headers)
+    assert [m.recipients for m in outbox] == [[app_module.MAIL_NOTIFICATIONS]]
+
+
+def test_webhook_don_un_seul_remerciement_meme_si_stripe_renvoie(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WEBHOOK_SECRET)
+    db.session.add(Don(nom="", email="", montant=20.0, stripe_session_id="cs_don"))
+    db.session.commit()
+    body, headers = _signed(_don_paye_event(details={"email": "awa@example.com", "name": "Awa"}))
+    with app_module.mail.record_messages() as outbox:
+        client.post("/stripe/webhook", data=body, headers=headers)
+        client.post("/stripe/webhook", data=body, headers=headers)
+    assert len(outbox) == 2  # notification + remerciement, une seule fois
+
+
+def test_webhook_don_echappe_le_nom_dans_le_html(client, monkeypatch):
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", WEBHOOK_SECRET)
+    db.session.add(Don(nom="", email="", montant=20.0, stripe_session_id="cs_don"))
+    db.session.commit()
+    body, headers = _signed(_don_paye_event(details={"email": "a@example.com", "name": "<script>x</script>"}))
+    with app_module.mail.record_messages() as outbox:
+        client.post("/stripe/webhook", data=body, headers=headers)
+    merci = next(m for m in outbox if m.recipients == ["a@example.com"])
+    assert "<script>" not in merci.html and "&lt;script&gt;" in merci.html

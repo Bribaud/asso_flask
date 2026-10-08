@@ -8,6 +8,7 @@ from datetime import datetime
 from functools import wraps
 from sqlalchemy.pool import NullPool
 from io import BytesIO
+from html import escape
 import stripe, os, uuid, json
 
 app = Flask(__name__)
@@ -695,6 +696,42 @@ def don_success():
     flash("Merci pour votre don. Votre paiement a bien été pris en compte.", "success")
     return redirect(url_for("index"))
 
+def confirmer_don(d, details):
+    """Passe un don à « payé » (une seule fois), complète nom et e-mail à partir de ce que le
+    donateur a saisi chez Stripe, notifie l'association et remercie le donateur."""
+    if d.statut == "paye":
+        return False
+    d.statut = "paye"
+    if not d.email:
+        d.email = (details.get("email") or "").strip()
+    if not d.nom:
+        d.nom = (details.get("name") or "").strip()
+    db.session.commit()
+
+    msg = MailMessage(subject=f"[AKF] Nouveau don — {d.montant:.2f} €", recipients=[MAIL_NOTIFICATIONS])
+    msg.body = f"Nom : {d.nom or '—'}\nEmail : {d.email or '—'}\nMontant : {d.montant:.2f} €"
+    send_mail_safe(msg)
+
+    if d.email:
+        prenom_nom = escape(d.nom) if d.nom else ""
+        salutation = f"Bonjour <strong>{prenom_nom}</strong>," if prenom_nom else "Bonjour,"
+        merci = MailMessage(subject="[AKF] Merci pour votre don !", recipients=[d.email])
+        merci.html = f"""<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          {email_header()}
+          <div style="padding:30px;background:#fff">
+            <h2 style="color:#1a7a4a">Merci pour votre générosité !</h2>
+            <p>{salutation}</p>
+            <p>Nous avons bien reçu votre don de <strong>{d.montant:.2f} €</strong>
+               à l'Association des Koungheulois de France.</p>
+            <p>Votre soutien contribue directement à nos actions de solidarité, d'entraide
+               et de développement à Koungheul.</p>
+            {email_footer()}
+          </div>
+        </div>"""
+        send_mail_safe(merci)
+    return True
+
+
 @app.route("/stripe/webhook", methods=["POST"])
 def stripe_webhook():
     """Confirmation serveur des paiements (source de vérité). Signature vérifiée."""
@@ -722,13 +759,8 @@ def stripe_webhook():
             activer_adhesion(adh)
     elif metadata.get("type") == "don":
         d = Don.query.filter_by(stripe_session_id=obj["id"]).first()
-        if d and d.statut != "paye":
-            d.statut = "paye"
-            db.session.commit()
-            msg = MailMessage(subject=f"[AKF] Nouveau don — {d.montant:.2f} €",
-                              recipients=[MAIL_NOTIFICATIONS])
-            msg.body = f"Nom : {d.nom}\nEmail : {d.email}\nMontant : {d.montant:.2f} €"
-            send_mail_safe(msg)
+        if d:
+            confirmer_don(d, obj.get("customer_details") or {})
     return "", 200
 
 @app.route("/mentions-legales")
